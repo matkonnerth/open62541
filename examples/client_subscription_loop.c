@@ -37,6 +37,12 @@ handler_currentTimeChanged(UA_Client *client, UA_UInt32 subId, void *subContext,
 }
 
 static void
+handler_MonitoredItemChanged(UA_Client *client, UA_UInt32 subId, void *subContext,
+                         UA_UInt32 monId, void *monContext, UA_DataValue *value) {
+    printf("monitored item callback\n");
+}
+
+static void
 deleteSubscriptionCallback(UA_Client *client, UA_UInt32 subscriptionId, void *subscriptionContext) {
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
                 "Subscription Id %u was deleted", subscriptionId);
@@ -78,6 +84,59 @@ stateCallback (UA_Client *client, UA_ClientState clientState) {
             else
                 return;
 
+            printf("Browsing nodes in objects folder:\n");
+            UA_BrowseRequest bReq;
+            UA_BrowseRequest_init(&bReq);
+            bReq.requestedMaxReferencesPerNode = 0;
+            bReq.nodesToBrowse = UA_BrowseDescription_new();
+            bReq.nodesToBrowseSize = 1;
+            bReq.nodesToBrowse[0].nodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER); /* browse objects folder */
+            bReq.nodesToBrowse[0].resultMask = UA_BROWSERESULTMASK_ALL; /* return everything */
+            bReq.nodesToBrowse[0].referenceTypeId = UA_NODEID_NUMERIC(0, UA_NS0ID_HIERARCHICALREFERENCES);
+            bReq.nodesToBrowse[0].includeSubtypes = true;
+            UA_BrowseResponse bResp = UA_Client_Service_browse(client, bReq);
+            printf("%-9s %-16s %-16s %-16s\n", "NAMESPACE", "NODEID", "BROWSE NAME", "DISPLAY NAME");
+            for(size_t i = 0; i < bResp.resultsSize; ++i) {
+                for(size_t j = 0; j < bResp.results[i].referencesSize; ++j) {
+                    UA_ReferenceDescription *ref = &(bResp.results[i].references[j]);
+                    if(ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_NUMERIC) {
+                        printf("%-9d %-16d %-16.*s %-16.*s\n", ref->nodeId.nodeId.namespaceIndex,
+                            ref->nodeId.nodeId.identifier.numeric, (int)ref->browseName.name.length,
+                            ref->browseName.name.data, (int)ref->displayName.text.length,
+                            ref->displayName.text.data);
+                    } else if(ref->nodeId.nodeId.identifierType == UA_NODEIDTYPE_STRING) {
+                        printf("%-9d %-16.*s %-16.*s %-16.*s\n", ref->nodeId.nodeId.namespaceIndex,
+                            (int)ref->nodeId.nodeId.identifier.string.length,
+                            ref->nodeId.nodeId.identifier.string.data,
+                            (int)ref->browseName.name.length, ref->browseName.name.data,
+                            (int)ref->displayName.text.length, ref->displayName.text.data);
+                    }
+
+                    //create monitored item
+                    for(int cnt=0; cnt<10; cnt++)
+                    {
+                        UA_MonitoredItemCreateRequest monRequest =
+                            UA_MonitoredItemCreateRequest_default(ref->nodeId.nodeId);
+                            monRequest.requestedParameters.samplingInterval = 100;
+
+                            UA_MonitoredItemCreateResult monResponse =
+                            UA_Client_MonitoredItems_createDataChange(client, response.subscriptionId,
+                                                                    UA_TIMESTAMPSTORETURN_BOTH,
+                                                                    monRequest, NULL, handler_MonitoredItemChanged, NULL);
+                            if(monResponse.statusCode == UA_STATUSCODE_GOOD)
+                                printf("Monitoring 'the.answer', id %u\n", monResponse.monitoredItemId);
+
+                    }
+                    
+
+
+                    /* TODO: distinguish further types */
+                }
+            }
+    UA_BrowseRequest_clear(&bReq);
+    UA_BrowseResponse_clear(&bResp);
+            
+
             /* Add a MonitoredItem */
             UA_MonitoredItemCreateRequest monRequest =
                 UA_MonitoredItemCreateRequest_default(UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERSTATUS_CURRENTTIME));
@@ -113,7 +172,7 @@ main(void) {
     config.stateCallback = stateCallback;
     config.subscriptionInactivityCallback = subscriptionInactivityCallback;
 
-    UA_Client *client = UA_Client_new(config);
+    UA_Client *client = UA_Client_new(config);    
 
     /* Endless loop runAsync */
     while(running) {
@@ -128,8 +187,8 @@ main(void) {
             /* E.g. name resolution errors or unreachable network. Thus there should be a small sleep here */
             UA_sleep_ms(1000);
             continue;
-        }
-
+        }        
+        
         UA_Client_run_iterate(client, 1000);
     };
 
