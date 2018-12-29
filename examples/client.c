@@ -5,6 +5,7 @@
 #include <ua_client_highlevel.h>
 #include <ua_config_default.h>
 #include <ua_log_stdout.h>
+#include <time.h>
 
 #ifdef UA_ENABLE_SUBSCRIPTIONS
 static void
@@ -55,6 +56,7 @@ int main(int argc, char *argv[]) {
         return (int)retval;
     }
 
+     clock_t begin, end;
     /* Browse some objects */
     printf("Browsing nodes in objects folder:\n");
     UA_BrowseRequest bReq;
@@ -62,9 +64,16 @@ int main(int argc, char *argv[]) {
     bReq.requestedMaxReferencesPerNode = 0;
     bReq.nodesToBrowse = UA_BrowseDescription_new();
     bReq.nodesToBrowseSize = 1;
-    bReq.nodesToBrowse[0].nodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER); /* browse objects folder */
+    bReq.nodesToBrowse[0].nodeId = UA_NODEID_NUMERIC(0, 5000); /* browse objects folder */
     bReq.nodesToBrowse[0].resultMask = UA_BROWSERESULTMASK_ALL; /* return everything */
-    UA_BrowseResponse bResp = UA_Client_Service_browse(client, bReq);
+    UA_BrowseResponse bResp;
+    begin = clock();
+    for(int i=0; i<1000; i++)
+    {
+        bResp = UA_Client_Service_browse(client, bReq);
+    }    
+    end = clock();    
+    printf("Time for browse: %fs.\n", (double)(end - begin) / CLOCKS_PER_SEC);
     printf("%-9s %-16s %-16s %-16s\n", "NAMESPACE", "NODEID", "BROWSE NAME", "DISPLAY NAME");
     for(size_t i = 0; i < bResp.resultsSize; ++i) {
         for(size_t j = 0; j < bResp.results[i].referencesSize; ++j) {
@@ -93,6 +102,50 @@ int main(int argc, char *argv[]) {
     UA_Client_forEachChildNodeCall(client, UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
                                    nodeIter, (void *) parent);
     UA_NodeId_delete(parent);
+
+    //translate
+   
+    
+
+    begin = clock();
+    UA_TranslateBrowsePathsToNodeIdsResponse tresponse;
+    for(int cnt=0; cnt<1000;cnt++)
+    {
+        #define BROWSE_PATHS_SIZE 5
+        char *paths[BROWSE_PATHS_SIZE] = {"Node_1_2", "Node_2_2", "Node_3_2", "Node_4_2", "Node_5_2"};
+        //UA_UInt32 ids[BROWSE_PATHS_SIZE] = {UA_NS0ID_ORGANIZES, UA_NS0ID_HASCOMPONENT, UA_NS0ID_HASCOMPONENT};
+        UA_BrowsePath browsePath;
+        UA_BrowsePath_init(&browsePath);
+        browsePath.startingNode = UA_NODEID_NUMERIC(0, 5000);
+        browsePath.relativePath.elements = (UA_RelativePathElement*)UA_Array_new(BROWSE_PATHS_SIZE, &UA_TYPES[UA_TYPES_RELATIVEPATHELEMENT]);
+        browsePath.relativePath.elementsSize = BROWSE_PATHS_SIZE;
+
+        for(size_t i = 0; i < BROWSE_PATHS_SIZE; i++) {
+            UA_RelativePathElement *elem = &browsePath.relativePath.elements[i];
+            //elem->referenceTypeId = UA_NODEID_NUMERIC(0, ids[i]);
+            elem->referenceTypeId = UA_NODEID_NUMERIC(0, UA_NS0ID_HIERARCHICALREFERENCES);
+            elem->targetName = UA_QUALIFIEDNAME_ALLOC(1, paths[i]);
+            elem->isInverse=false;
+            elem->includeSubtypes=true;
+        }
+
+        UA_TranslateBrowsePathsToNodeIdsRequest trequest;
+        UA_TranslateBrowsePathsToNodeIdsRequest_init(&trequest);
+        trequest.browsePaths = &browsePath;
+        trequest.browsePathsSize = 1;
+
+
+        tresponse = UA_Client_Service_translateBrowsePathsToNodeIds(client, trequest);
+        //UA_TranslateBrowsePathsToNodeIdsRequest_clear(&trequest);
+        UA_BrowsePath_deleteMembers(&browsePath);
+        UA_TranslateBrowsePathsToNodeIdsResponse_deleteMembers(&tresponse);
+    }    
+    end = clock();    
+    printf("Time for translate: %fs.\n", (double)(end - begin) / CLOCKS_PER_SEC);
+
+    
+
+
 
 #ifdef UA_ENABLE_SUBSCRIPTIONS
     /* Create a subscription */

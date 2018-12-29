@@ -27,8 +27,8 @@ addVariable(UA_Server *server) {
     UA_VariableAttributes attr = UA_VariableAttributes_default;
     UA_Int32 myInteger = 42;
     UA_Variant_setScalar(&attr.value, &myInteger, &UA_TYPES[UA_TYPES_INT32]);
-    attr.description = UA_LOCALIZEDTEXT("en-US","the answer");
-    attr.displayName = UA_LOCALIZEDTEXT("en-US","the answer");
+    attr.description = UA_LOCALIZEDTEXT("en-US","t");
+    attr.displayName = UA_LOCALIZEDTEXT("en-US","ka");
     attr.dataType = UA_TYPES[UA_TYPES_INT32].typeId;
     attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
 
@@ -36,14 +36,12 @@ addVariable(UA_Server *server) {
     //UA_NodeId myIntegerNodeId = UA_NODEID_STRING(1, "the.answer");
     UA_QualifiedName myIntegerName = UA_QUALIFIEDNAME(1, "the answer");
     UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
-    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
-    for(int i=0; i<1000; i++)
-    {
-         UA_Server_addVariableNode(server, UA_NODEID_NULL, parentNodeId,
-                              parentReferenceNodeId, myIntegerName,
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, NULL, NULL);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);   
+    UA_Server_addVariableNode(server, UA_NODEID_NULL, parentNodeId,
+                        parentReferenceNodeId, myIntegerName,
+                        UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, NULL, NULL);
 
-    }
+    
    
 }
 
@@ -110,6 +108,59 @@ static void stopHandler(int sign) {
     running = false;
 }
 
+static UA_NodeId addObject(UA_NodeId parent, UA_Server* server, int m, int n)
+{
+
+    char buf[256];    
+    snprintf(buf, sizeof buf, "%s%d%s%d", "Node_", m, "_", n);
+
+    UA_ObjectAttributes attr = UA_ObjectAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", buf);
+    
+
+    UA_QualifiedName browseName = UA_QUALIFIEDNAME(1, buf);    
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES); 
+    
+    UA_NodeId newNode;
+    UA_Server_addObjectNode(server, UA_NODEID_NULL, parent, parentReferenceNodeId, browseName,  UA_NODEID_NUMERIC(0, UA_NS0ID_FOLDERTYPE), attr, NULL, &newNode);
+    return newNode;
+}
+
+static void addChilds(UA_NodeId parent, UA_Server* server)
+{
+    static int stack=0;    
+    //printf("stack: %d \n", stack);
+    stack++;     
+
+    for(int i=0; i<3; i++)
+    {
+        UA_NodeId id = addObject(parent, server, stack, i);
+        if(stack<5)
+        {
+            addChilds(id, server);
+        }        
+    }  
+    stack--;  
+}
+
+static void deepHierachicalNodes(UA_Server* server)
+{
+    //add folder
+
+    UA_ObjectAttributes attr = UA_ObjectAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US","BrowseHere");
+    
+
+    UA_QualifiedName browseName = UA_QUALIFIEDNAME(1, "BrowseStart");
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES); 
+    UA_NodeId newNodeId = UA_NODEID_NUMERIC(0, 5000);
+
+    UA_Server_addObjectNode(server, newNodeId, parentNodeId, parentReferenceNodeId, browseName,  UA_NODEID_NUMERIC(0, UA_NS0ID_FOLDERTYPE), attr, NULL, NULL);
+
+    addChilds(newNodeId, server);
+}
+
 int main(void) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
@@ -118,9 +169,17 @@ int main(void) {
     UA_Server *server = UA_Server_new(config);
 
    
-    addVariable(server);
-    
-    
+    for(int i=0; i<10; i++)
+    {
+        addVariable(server);
+    }
+
+    deepHierachicalNodes(server);
+
+    for(int i=0; i<1000; i++)
+    {
+        addObject(UA_NODEID_NUMERIC(0,5000), server, 10, i);
+    }    
     writeVariable(server);
     writeWrongVariable(server);
 
