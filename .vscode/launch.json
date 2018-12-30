@@ -1,0 +1,92 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [        
+
+        {
+            "name": "Python: generate datatypes",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/generate_datatypes.py",
+            "console": "integratedTerminal",
+            "args" : [
+                "--type-bsd", "${workspaceFolder}/examples/nodeset/My.Types.bsd", 
+                "--namespace", "2",    
+                "--no-builtin",
+                "${workspaceFolder}/examples/nodeset/mytypes"],
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Python: nodesetcompiler",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/nodeset_compiler/nodeset_compiler.py",
+            "console": "integratedTerminal",
+            "args" : ["--generate-ns0","--existing", "${workspaceFolder}/deps/ua-nodeset/Schema/Opc.Ua.NodeSet2.xml",
+                "--xml", "${workspaceFolder}/examples/nodeset/mynodeset.xml",
+                "--types-array", "UA_TYPES",
+                "--types-array", "UA_MYTYPES",
+                "--ignore", "${workspaceFolder}/tools/nodeset_compiler/NodeID_NS0_Base.txt", "${workspaceFolder}/examples/nodeset/mynamespace", "-v", "-v", "-v", "-v"],
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "(gdb) client",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}//build/bin/examples/client",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch tutorial server",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}//build/bin/examples/tutorial_server_variable",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+        {
+            "name": "(gdb) mynodeset",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}//build/bin/examples/server_mynodeset",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

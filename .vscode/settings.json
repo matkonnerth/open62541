@@ -1,0 +1,12 @@
+{
+    "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+    "files.associations": {
+        "ua_server_internal.h": "c",
+        "ua_namespace0.h": "c",
+        "ua_server.h": "c",
+        "ua_namespace_di.h": "c",
+        "ua_types_di_generated.h": "c",
+        "mynamespace.h": "c",
+        "mytypes_generated.h": "c"
+    }
+}
