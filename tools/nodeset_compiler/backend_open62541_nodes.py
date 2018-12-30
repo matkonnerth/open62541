@@ -248,6 +248,9 @@ def getTypeBrowseName(dataTypeNode):
         # in the stack we define a separate structure for the numeric range, but
         # the value itself is just a string
         typeBrowseName = "String"
+    elif typeBrowseName == "IdType":
+        # it's an enum, use Int32 for c++ compiler
+        typeBrowseName = "Int32"
     return typeBrowseName
 
 def generateValueCodeDummy(dataTypeNode, parentNode, nodeset):
