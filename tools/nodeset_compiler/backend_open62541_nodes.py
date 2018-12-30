@@ -253,9 +253,7 @@ def getTypeBrowseName(dataTypeNode):
 def generateValueCodeDummy(dataTypeNode, parentNode, nodeset):
     code = []
     valueName = generateNodeIdPrintable(parentNode) + "_variant_DataContents"
-
     typeBrowseName = getTypeBrowseName(dataTypeNode)
-
     typeArr = dataTypeNode.typesArray + "[" + dataTypeNode.typesArray + "_" + typeBrowseName.upper() + "]"
     typeStr = "UA_" + typeBrowseName
 
@@ -275,9 +273,6 @@ def getTypesArrayForValue(nodeset, value):
     else:
         typesArray = typeNode.typesArray
     typeName = makeCIdentifier(value.__class__.__name__.upper())
-    #TODO: ugly
-    #if value.alias:
-    #    typeName = makeCIdentifier(value.alias.upper())
     return "&" + typesArray + "[" + typesArray + "_" + typeName + "]"
 
 
@@ -290,8 +285,7 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
     code = []
     codeCleanup = []
     codeGlobal = []
-    valueName = generateNodeIdPrintable(parentNode) + "_variant_DataContents"
-   
+    valueName = generateNodeIdPrintable(parentNode) + "_variant_DataContents"   
 
     # node.value either contains a list of multiple identical BUILTINTYPES, or it
     # contains a single builtintype (which may be a container); choose if we need
@@ -320,7 +314,6 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
         elif isinstance(node.value[0], StatusCode):
             logger.warn("Don't know how to print array of StatusCode in node " + str(parentNode.id))
         else:
-            #array
             if isinstance(node.value[0], ExtensionObject):
                 for idx, v in enumerate(node.value):
                     logger.debug("Building extObj array index " + str(idx))
@@ -358,21 +351,11 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
         else:
             # The following strategy applies to all other types, in particular strings and numerics.
             if isinstance(node.value[0], ExtensionObject):
-                [code1, codeCleanup1] = generateExtensionObjectSubtypeCode(node.value[0], parent=parentNode, nodeset=nodeset,
-                                                                           global_var_code=codeGlobal)
+                [code1, codeCleanup1] = generateExtensionObjectSubtypeCode(node.value[0], parent=parentNode, nodeset=nodeset, global_var_code=codeGlobal)
                 code = code + code1
                 codeCleanup = codeCleanup + codeCleanup1
             instanceName = generateNodeValueInstanceName(node.value[0], parentNode, 0, 0)
-            if isinstance(node.value[0], ExtensionObject):
-                #code.append(generateNodeValueCode("UA_" + node.value[0].__class__.__name__ + " *" + valueName + " = " ,
-                #            node.value[0], instanceName, valueName, codeGlobal, asIndirect=True ))
-                #code.append(
-                #    "UA_Variant_setScalar(&attr.value, " + valueName + ", " +
-                #    getTypesArrayForValue(nodeset, node.value[0]) + ");")
-                pass
-                # FIXME: There is no membership definition for extensionObjects generated in this function.
-                # code.append("UA_" + node.value[0].__class__.__name__ + "_deleteMembers(" + valueName + ");")
-            else:
+            if not(isinstance(node.value[0], ExtensionObject)):
                 code.append("UA_" + node.value[0].__class__.__name__ + " *" + valueName + " =  UA_" + node.value[
                     0].__class__.__name__ + "_new();")
                 code.append("if (!" + valueName + ") return UA_STATUSCODE_BADOUTOFMEMORY;")
