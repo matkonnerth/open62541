@@ -356,21 +356,36 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
         elif isinstance(node.value[0], StatusCode):
             logger.warn("Don't know how to print scalar StatusCode in node " + str(parentNode.id))
         else:
-            # The following strategy applies to all other types, in particular strings and numerics.           
-            instanceName = generateNodeValueInstanceName(node.value[0], parentNode, 0, 0)            
-            code.append("UA_" + node.value[0].__class__.__name__ + " *" + valueName + " =  UA_" + node.value[
-                0].__class__.__name__ + "_new();")
-            code.append("if (!" + valueName + ") return UA_STATUSCODE_BADOUTOFMEMORY;")
-            code.append(generateNodeValueCode("*" + valueName + " = " , node.value[0], instanceName, valueName, codeGlobal, asIndirect=True))
-            code.append(
-                    "UA_Variant_setScalar(&attr.value, " + valueName + "," + "&" +
-                        dataTypeNode.typesArray + "["+dataTypeNode.typesArray + "_" + getTypeBrowseName(dataTypeNode).upper() +"]);")
-            if node.value[0].__class__.__name__ == "ByteString":
-                # The data is on the stack, not heap, so we can not delete the ByteString
-                codeCleanup.append("{}->data = NULL;".format(valueName))
-                codeCleanup.append("{}->length = 0;".format(valueName))
-            codeCleanup.append("UA_{0}_delete({1});".format(
-                node.value[0].__class__.__name__, valueName))
+            # The following strategy applies to all other types, in particular strings and numerics.
+            if isinstance(node.value[0], ExtensionObject):
+                [code1, codeCleanup1] = generateExtensionObjectSubtypeCode(node.value[0], parent=parentNode, nodeset=nodeset,
+                                                                           global_var_code=codeGlobal)
+                code = code + code1
+                codeCleanup = codeCleanup + codeCleanup1
+            instanceName = generateNodeValueInstanceName(node.value[0], parentNode, 0, 0)
+            if isinstance(node.value[0], ExtensionObject):
+                #code.append(generateNodeValueCode("UA_" + node.value[0].__class__.__name__ + " *" + valueName + " = " ,
+                #            node.value[0], instanceName, valueName, codeGlobal, asIndirect=True ))
+                #code.append(
+                #    "UA_Variant_setScalar(&attr.value, " + valueName + ", " +
+                #    getTypesArrayForValue(nodeset, node.value[0]) + ");")
+                pass
+                # FIXME: There is no membership definition for extensionObjects generated in this function.
+                # code.append("UA_" + node.value[0].__class__.__name__ + "_deleteMembers(" + valueName + ");")
+            else:
+                code.append("UA_" + node.value[0].__class__.__name__ + " *" + valueName + " =  UA_" + node.value[
+                    0].__class__.__name__ + "_new();")
+                code.append("if (!" + valueName + ") return UA_STATUSCODE_BADOUTOFMEMORY;")
+                code.append(generateNodeValueCode("*" + valueName + " = " , node.value[0], instanceName, valueName, codeGlobal, asIndirect=True))
+                code.append(
+                        "UA_Variant_setScalar(&attr.value, " + valueName + ", " +
+                        getTypesArrayForValue(nodeset, node.value[0]) + ");")
+                if node.value[0].__class__.__name__ == "ByteString":
+                    # The data is on the stack, not heap, so we can not delete the ByteString
+                    codeCleanup.append("{}->data = NULL;".format(valueName))
+                    codeCleanup.append("{}->length = 0;".format(valueName))
+                codeCleanup.append("UA_{0}_delete({1});".format(
+                    node.value[0].__class__.__name__, valueName))
     return [code, codeCleanup, codeGlobal]
 
 def generateMethodNodeCode(node):
