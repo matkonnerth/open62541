@@ -123,6 +123,10 @@ def generateVariableNodeCode(node, nodeset, encode_binary_size):
                         code.append("attr.value.arrayDimensions = attr.arrayDimensions;")
                 else:
                     code += generateValueCodeDummy(dataTypeNode, nodeset.nodes[node.id], nodeset)
+            else:
+                #TODO: take a look on this
+                #logger.error("cannot encode: " + node.browseName.name)
+                pass
     return [code, codeCleanup, codeGlobal]
 
 def generateVariableTypeNodeCode(node, nodeset, encode_binary_size):
@@ -237,27 +241,29 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
     code.append("UA_Variant_setScalar(&attr.value, " + instanceName + ", &" + typeArrayString + ");")
     return [code, codeCleanup]
 
+def getTypeBrowseName(dataTypeNode):
+    typeBrowseName = makeCIdentifier(dataTypeNode.browseName.name)
+    #TODO: review this
+    if typeBrowseName == "NumericRange":
+        # in the stack we define a separate structure for the numeric range, but
+        # the value itself is just a string
+        typeBrowseName = "String"
+    return typeBrowseName
 
 def generateValueCodeDummy(dataTypeNode, parentNode, nodeset):
     code = []
     valueName = generateNodeIdPrintable(parentNode) + "_variant_DataContents"
 
-    typeBrowseNode = makeCIdentifier(dataTypeNode.browseName.name)
-    #TODO: review this
-    if typeBrowseNode == "NumericRange":
-        # in the stack we define a separate structure for the numeric range, but
-        # the value itself is just a string
-        typeBrowseNode = "String"
+    typeBrowseName = getTypeBrowseName(dataTypeNode)
 
-    typeArr = dataTypeNode.typesArray + "[" + dataTypeNode.typesArray + "_" + typeBrowseNode.upper() + "]"
-    typeStr = "UA_" + typeBrowseNode
+    typeArr = dataTypeNode.typesArray + "[" + dataTypeNode.typesArray + "_" + typeBrowseName.upper() + "]"
+    typeStr = "UA_" + typeBrowseName
 
     if parentNode.valueRank > 0:
         for i in range(0, parentNode.valueRank):
             code.append("UA_Variant_setArray(&attr.value, NULL, (UA_Int32) " + "0, &" + typeArr + ");")
     elif not dataTypeNode.isAbstract:
         code.append("UA_STACKARRAY(" + typeStr + ", " + valueName + ", 1);")
-        #code.append(typeStr + " " + valueName + ";")
         code.append("UA_init(" + valueName + ", &" + typeArr + ");")
         code.append("UA_Variant_setScalar(&attr.value, " + valueName + ", &" + typeArr + ");")
     return code
@@ -269,10 +275,11 @@ def getTypesArrayForValue(nodeset, value):
     else:
         typesArray = typeNode.typesArray
     typeName = makeCIdentifier(value.__class__.__name__.upper())
-    if value.alias:
-        typeName = makeCIdentifier(value.alias.upper())
+    #TODO: ugly
+    #if value.alias:
+    #    typeName = makeCIdentifier(value.alias.upper())
     return "&" + typesArray + "[" + typesArray + "_" + typeName + "]"
-   
+
 
 def isArrayVariableNode(node, parentNode):
     return parentNode.valueRank != -1 and (parentNode.valueRank >= 0
@@ -302,6 +309,8 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
     if not isinstance(node.value[0], Value):
         return ["", ""]
 
+    dataTypeNode = nodeset.getDataTypeNode(parentNode.dataType)
+
     if isArrayVariableNode(node, parentNode):
         # User the following strategy for all directly mappable values a la 'UA_Type MyInt = (UA_Type) 23;'
         if isinstance(node.value[0], Guid):
@@ -318,12 +327,9 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
                     [code1, codeCleanup1] = generateExtensionObjectSubtypeCode(v, parent=parentNode, nodeset=nodeset, arrayIndex=idx,
                                                                                 global_var_code=codeGlobal)
                     code = code + code1
-                    codeCleanup = codeCleanup + codeCleanup1
-            #code.append("UA_" + node.value[0].__class__.__name__ + " " + valueName + "[" + str(len(node.value)) + "];")
-            if node.value[0].alias:
-                code.append("UA_" + node.value[0].alias + " " + valueName + "[" + str(len(node.value)) + "];")
-            else:
-                code.append("UA_" + node.value[0].__class__.__name__ + " " + valueName + "[" + str(len(node.value)) + "];")    
+                    codeCleanup = codeCleanup + codeCleanup1             
+
+            code.append("UA_" + getTypeBrowseName(dataTypeNode) + " " + valueName + "[" + str(len(node.value)) + "];")               
             if isinstance(node.value[0], ExtensionObject):
                 for idx, v in enumerate(node.value):
                     logger.debug("Printing extObj array index " + str(idx))
@@ -331,15 +337,16 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
                     code.append(generateNodeValueCode(
                         valueName + "[" + str(idx) + "] = ",
                         v, instanceName, valueName, codeGlobal))
-                    # code.append("UA_free(&" +valueName + "[" + str(idx) + "]);")
+                    
             else:
                 for idx, v in enumerate(node.value):
                     instanceName = generateNodeValueInstanceName(v, parentNode, 0, idx)
                     code.append(generateNodeValueCode(
                         valueName + "[" + str(idx) + "] = " , v, instanceName, valueName, codeGlobal))
             code.append("UA_Variant_setArray(&attr.value, &" + valueName +
-                        ", (UA_Int32) " + str(len(node.value)) + ", " +
-                        getTypesArrayForValue(nodeset, node.value[0]) + ");")
+                        ", (UA_Int32) " + str(len(node.value)) + ", " + "&" +
+                        dataTypeNode.typesArray + "["+dataTypeNode.typesArray + "_" + getTypeBrowseName(dataTypeNode).upper() +"]);")
+    #scalar value
     else:
         # User the following strategy for all directly mappable values a la 'UA_Type MyInt = (UA_Type) 23;'
         if isinstance(node.value[0], Guid):
@@ -356,8 +363,8 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
             code.append("if (!" + valueName + ") return UA_STATUSCODE_BADOUTOFMEMORY;")
             code.append(generateNodeValueCode("*" + valueName + " = " , node.value[0], instanceName, valueName, codeGlobal, asIndirect=True))
             code.append(
-                    "UA_Variant_setScalar(&attr.value, " + valueName + ", " +
-                    getTypesArrayForValue(nodeset, node.value[0]) + ");")
+                    "UA_Variant_setScalar(&attr.value, " + valueName + "," + "&" +
+                        dataTypeNode.typesArray + "["+dataTypeNode.typesArray + "_" + getTypeBrowseName(dataTypeNode).upper() +"]);")
             if node.value[0].__class__.__name__ == "ByteString":
                 # The data is on the stack, not heap, so we can not delete the ByteString
                 codeCleanup.append("{}->data = NULL;".format(valueName))
