@@ -9,10 +9,9 @@
 # include "open62541.h"
 #else
 # include "ua_server.h"
-# include "mytypes_generated_encoding_binary.h"
 #endif
-
 #include "mytypes_generated.h"
+
 
 
 _UA_BEGIN_DECLS

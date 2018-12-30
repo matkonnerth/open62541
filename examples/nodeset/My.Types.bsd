@@ -39,8 +39,8 @@
   <opc:Import Namespace="http://opcfoundation.org/UA/" Location="Opc.Ua.BinarySchema.bsd"/>
 
   <opc:StructuredType Name="Point" BaseType="ua:ExtensionObject">
-    <opc:Field Name="X" TypeName="opc:Int32" />    
-    <opc:Field Name="Y" TypeName="opc:Int32" />    
+    <opc:Field Name="x" TypeName="opc:Int32" />    
+    <opc:Field Name="y" TypeName="opc:Int32" />    
   </opc:StructuredType>
 
 </opc:TypeDictionary>

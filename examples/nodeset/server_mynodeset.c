@@ -31,7 +31,8 @@ int main(int argc, char** argv) {
     if(mynamespace(server) != UA_STATUSCODE_GOOD) {
         UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Could not add the example nodeset. "
         "Check previous output for any error.");
-        retval = UA_STATUSCODE_BADUNEXPECTEDERROR;
+        //retval = UA_STATUSCODE_BADUNEXPECTEDERROR;
+        retval = UA_Server_run(server, &running);
     } else {
 
         // Do some additional stuff with the nodes

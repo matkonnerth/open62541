@@ -9,6 +9,7 @@
         <Alias Alias="HasTypeDefinition">i=40</Alias>
         <Alias Alias="HasSubtype">i=45</Alias>
         <Alias Alias="HasComponent">i=47</Alias>
+        <Alias Alias="Argument">i=296</Alias>
     </Aliases>
     <!-- Following object has only references to nodes defined after itself -->
     <UAObject NodeId="ns=1;i=5001" BrowseName="1:testInstance">
@@ -61,18 +62,100 @@
     <UADataType NodeId="ns=1;i=10001" BrowseName="1:Point">
         <DisplayName>Point</DisplayName>
         <References>
-        <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+            <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+            <Reference ReferenceType="HasEncoding">ns=1;i=10003</Reference>
         </References>
         <Definition Name="Point">
-        <Field Name="X" DataType="i=6" />
-        <Field Name="Y" DataType="i=6" />        
+        <Field Name="x" DataType="i=6" />
+        <Field Name="y" DataType="i=6" />        
         </Definition>
     </UADataType>
+    <UAObject SymbolicName="DefaultBinary" NodeId="ns=1;i=10003" BrowseName="Default Binary">
+        <DisplayName>Default Binary</DisplayName>
+        <References>
+            <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=10001</Reference>
+            <Reference ReferenceType="HasTypeDefinition">i=76</Reference>            
+        </References>
+    </UAObject>
     <UAVariable ParentNodeId="ns=1;i=5001" NodeId="ns=1;i=10002" BrowseName="1:PointA" DataType="ns=1;i=10001" UserAccessLevel="3" AccessLevel="3">
         <DisplayName>PointA</DisplayName>
         <References>
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
             <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>
-        </References>        
+        </References> 
+        <Value>  
+            <ExtensionObject>
+                <TypeId>
+                    <Identifier>ns=1;i=10001</Identifier>
+                </TypeId>
+                <Body>                   
+                    <Point xmlns="http://http://yourorganisation.org/test/">
+                        <x>1</x>
+                        <y>2</y>
+                    </Point>
+                </Body>
+            </ExtensionObject>
+        </Value>
     </UAVariable>
+    <UAVariable ParentNodeId="ns=1;i=5001" NodeId="ns=1;i=10005" BrowseName="1:PointB" DataType="ns=1;i=10001" UserAccessLevel="3" AccessLevel="3">
+        <DisplayName>PointA</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>
+        </References>         
+    </UAVariable>
+    <UAVariable DataType="Argument" NodeId="ns=1;i=11000" BrowseName="1:Argument1" UserAccessLevel="3" AccessLevel="3">
+        <DisplayName>Argument1</DisplayName>
+        <References>
+            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+        </References>
+        <Value>
+            <uax:ExtensionObject>
+                <uax:TypeId>
+                    <uax:Identifier>i=297</uax:Identifier>
+                </uax:TypeId>
+                <uax:Body>
+                    <Argument xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+                        <Name>argName</Name>
+                        <DataType>
+                            <Identifier>i=1</Identifier>
+                        </DataType>
+                        <ValueRank>-1</ValueRank>
+                        <ArrayDimensions/>
+                        <Description>
+                            <Text>descr</Text>
+                        </Description>
+                    </Argument>
+                </uax:Body>
+            </uax:ExtensionObject>
+        </Value>
+    </UAVariable>    
+    <UAVariable NodeId="ns=1;i=11493" BrowseName="InputArguments" DataType="i=296" ValueRank="1">
+    <DisplayName>InputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>   
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>   
+    </References>
+    <Value>
+      <ListOfExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <ExtensionObject>
+          <TypeId>
+            <Identifier>i=297</Identifier>
+          </TypeId>
+          <Body>
+            <Argument>
+              <Name>SubscriptionId</Name>
+              <DataType>
+                <Identifier>i=7</Identifier>
+              </DataType>
+              <ValueRank>-1</ValueRank>
+              <ArrayDimensions />
+              <Description p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
+            </Argument>
+          </Body>
+        </ExtensionObject>
+      </ListOfExtensionObject>
+    </Value>
+  </UAVariable>
 </UANodeSet>

@@ -162,30 +162,28 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
     logger.debug("Encoding " + str(node.encodingRule))
 
     instanceName = generateNodeValueInstanceName(node, parent, recursionDepth, arrayIndex)
-    # If there are any ExtensionObjects instide this ExtensionObject, we need to
+    # If there are any ExtensionObjects inside this ExtensionObject, we need to
     # generate one-time-structs for them too before we can proceed;
     for subv in node.value:
         if isinstance(subv, list):
             logger.error("ExtensionObject contains an ExtensionObject, which is currently not encodable!")
 
-    code.append("struct {")
-    for field in node.encodingRule:
-        ptrSym = ""
-        # If this is an Array, this is pointer to its contents with a AliasOfFieldSize entry
-        if field[2] != None and field[2] != 0 :
-            code.append("  UA_Int32 " + str(field[0]) + "Size;")
-            ptrSym = "*"
-        if len(field[1]) == 1:
-            code.append("  UA_" + str(field[1][0]) + " " + ptrSym + str(field[0]) + ";")
-        else:
-            code.append("  UA_ExtensionObject " + " " + ptrSym + str(field[0]) + ";")
-    code.append("} " + instanceName + "_struct;")
 
-    # Allocate some memory
-    code.append("UA_ExtensionObject *" + instanceName + " =  UA_ExtensionObject_new();")
-    code.append("if (!" + instanceName + ") return UA_STATUSCODE_BADOUTOFMEMORY;")
-    codeCleanup.append("UA_ExtensionObject_delete(" + instanceName + ");")
+    #typeStr = "UA_" + node.alias
+    #TODO: where does this UA come from?
 
+    typeBrowseNode = makeCIdentifier(nodeset.getDataTypeNode(parent.dataType).browseName.name)
+    #TODO: review this
+    if typeBrowseNode == "NumericRange":
+        # in the stack we define a separate structure for the numeric range, but
+        # the value itself is just a string
+        typeBrowseNode = "String"
+
+
+    typeString = "UA_" + typeBrowseNode
+    code.append("UA_STACKARRAY(" + typeString + ", " + instanceName+ ", 1);")
+
+    
     # Assign data to the struct contents
     # Track the encoding rule definition to detect arrays and/or ExtensionObjects
     encFieldIdx = 0
@@ -196,85 +194,47 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
             "Encoding of field " + subv.alias + " is " + str(subv.encodingRule) + "defined by " + str(encField))
         # Check if this is an array
         if subv.valueRank is None or subv.valueRank == 0:
-            valueName = instanceName + "_struct." + subv.alias
+            #TODO: this is strange
+            valueName = instanceName + "->" + subv.alias[0].lower() + subv.alias[1:]
+            #valueName = instanceName + "_struct." + subv.alias
             code.append(generateNodeValueCode(valueName + " = " ,
                         subv, instanceName,valueName, global_var_code, asIndirect=False))
         else:
             if isinstance(subv, list):
                 # this is an array
-                code.append(instanceName + "_struct." + subv.alias + "Size = " + str(len(subv)) + ";")
+                code.append(instanceName + subv.alias + "Size = " + str(len(subv)) + ";")
                 code.append(
-                     "{0}_struct.{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2})*{3});".format(
-                         instanceName, subv.alias, subv.__class__.__name__, str(len(subv))))
-                code.append("if (!{0}_struct.{1}) return UA_STATUSCODE_BADOUTOFMEMORY;".format(
+                     "{0}->{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2})*{3});".format(
+                         instanceName, subv.alias[0].lower()+ subv.alias[1:], subv.__class__.__name__, str(len(subv))))
+                code.append("if (!{0}->{1}) return UA_STATUSCODE_BADOUTOFMEMORY;".format(
                     instanceName, subv.alias))
-                codeCleanup.append("UA_free({0}_struct.{1});".format(instanceName, subv.alias))
+                codeCleanup.append("UA_free({0}->{1});".format(instanceName, subv.alias[0].lower()+ subv.alias[1:]))
                 logger.debug("Encoding included array of " + str(len(subv)) + " values.")
                 for subvidx in range(0, len(subv)):
                     subvv = subv[subvidx]
                     logger.debug("  " + str(subvidx) + " " + str(subvv))
-                    valueName = instanceName + "_struct." + subv.alias + "[" + str(
+                    valueName = instanceName + "->" + subv.alias[0].lower()+ subv.alias[1:] + "[" + str(
                         subvidx) + "]"
                     code.append(generateNodeValueCode(valueName + " = ", subvv, instanceName, valueName, global_var_code))
                 code.append("}")
             else:
-                code.append(instanceName + "_struct." + subv.alias + "Size = 1;")
+                code.append(instanceName + "->" + subv.alias[0].lower()+ subv.alias[1:]+ "Size = 1;")
                 code.append(
-                    "{0}_struct.{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2}));".format(
-                        instanceName, subv.alias, subv.__class__.__name__))
-                code.append("if (!{0}_struct.{1}) return UA_STATUSCODE_BADOUTOFMEMORY;".format(
-                    instanceName, subv.alias))
-                codeCleanup.append("UA_free({0}_struct.{1});".format(instanceName, subv.alias))
-                valueName = instanceName + "_struct." + subv.alias + "[0]"
+                    "{0}->{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2}));".format(
+                        instanceName, subv.alias[0].lower()+ subv.alias[1:], subv.__class__.__name__))
+                code.append("if (!{0}->{1}) return UA_STATUSCODE_BADOUTOFMEMORY;".format(
+                    instanceName, subv.alias[0].lower()+ subv.alias[1:]))
+                codeCleanup.append("UA_free({0}->{1});".format(instanceName, subv.alias[0].lower()+ subv.alias[1:]))
+                valueName = instanceName + "->" + subv.alias[0].lower()+ subv.alias[1:] + "[0]"
                 code.append(generateNodeValueCode(valueName + " = ",
                             subv, instanceName, valueName, global_var_code, asIndirect=True))
-
-    code.append(instanceName + "->encoding = UA_EXTENSIONOBJECT_ENCODED_BYTESTRING;")
-    #if parent.dataType.ns == 0:
-
-    binaryEncodingId = nodeset.getBinaryEncodingIdForNode(parent.dataType)
-    code.append(
-        instanceName + "->content.encoded.typeId = UA_NODEID_NUMERIC(" + str(binaryEncodingId.ns) + ", " +
-        str(binaryEncodingId.i) + ");")
-    code.append(
-        "retVal |= UA_ByteString_allocBuffer(&" + instanceName + "->content.encoded.body, " + str(encode_binary_size) + ");")
-
-    # Encode each value as a bytestring separately.
-    code.append("UA_Byte *pos" + instanceName + " = " + instanceName + "->content.encoded.body.data;")
-    code.append("const UA_Byte *end" + instanceName + " = &" + instanceName + "->content.encoded.body.data[" + str(encode_binary_size) + "];")
-    encFieldIdx = 0
-    code.append("{")
-    for subv in node.value:
-        # encField = node.encodingRule[encFieldIdx]
-        encFieldIdx = encFieldIdx + 1
-        if subv.valueRank is None or subv.valueRank == 0:
-            code.append(
-                "retVal |= UA_encodeBinary(&" + instanceName + "_struct." + subv.alias + ", " +
-                getTypesArrayForValue(nodeset, subv) + ", &pos" + instanceName + ", &end" + instanceName + ", NULL, NULL);")
-        else:
-            if isinstance(subv, list):
-                for subvidx in range(0, len(subv)):
-                    code.append("retVal |= UA_encodeBinary(&" + instanceName + "_struct." + subv.alias + "[" +
-                                str(subvidx) + "], " + getTypesArrayForValue(nodeset, subv) + ", &pos" +
-                                instanceName + ", &end" + instanceName + ", NULL, NULL);")
-            else:
-                code.append(
-                    "retVal |= UA_encodeBinary(&" + instanceName + "_struct." + subv.alias + "[0], " +
-                    getTypesArrayForValue(nodeset, subv) + ", &pos" + instanceName + ", &end" + instanceName + ", NULL, NULL);")
-
-    code.append("}")
-    # Reallocate the memory by swapping the 65k Bytestring for a new one
-    code.append("size_t " + instanceName + "_encOffset = (uintptr_t)(" +
-                "pos" + instanceName + "-" + instanceName + "->content.encoded.body.data);")
-    code.append(instanceName + "->content.encoded.body.length = " + instanceName + "_encOffset;")
-    code.append("UA_Byte *" + instanceName + "_newBody = (UA_Byte *) UA_malloc(" + instanceName + "_encOffset);")
-    code.append("if (!" + instanceName + "_newBody) return UA_STATUSCODE_BADOUTOFMEMORY;")
-    code.append("memcpy(" + instanceName + "_newBody, " + instanceName + "->content.encoded.body.data, " +
-                instanceName + "_encOffset);")
-    code.append("UA_Byte *" + instanceName + "_oldBody = " + instanceName + "->content.encoded.body.data;")
-    code.append(instanceName + "->content.encoded.body.data = " + instanceName + "_newBody;")
-    code.append("UA_free(" + instanceName + "_oldBody);")
-    code.append("")
+    
+    #TODO: review this
+    typeArr = nodeset.getDataTypeNode(parent.dataType).typesArray
+    typeString = nodeset.getDataTypeNode(parent.dataType).browseName.name.upper()
+    typeArrayString = typeArr + "[" + typeArr + "_" + typeString + "]"
+    code.append("UA_init(" + instanceName + ", &" + typeArrayString + ");")
+    code.append("UA_Variant_setScalar(&attr.value, " + instanceName + ", &" + typeArrayString + ");")
     return [code, codeCleanup]
 
 
@@ -283,6 +243,7 @@ def generateValueCodeDummy(dataTypeNode, parentNode, nodeset):
     valueName = generateNodeIdPrintable(parentNode) + "_variant_DataContents"
 
     typeBrowseNode = makeCIdentifier(dataTypeNode.browseName.name)
+    #TODO: review this
     if typeBrowseNode == "NumericRange":
         # in the stack we define a separate structure for the numeric range, but
         # the value itself is just a string
@@ -296,9 +257,9 @@ def generateValueCodeDummy(dataTypeNode, parentNode, nodeset):
             code.append("UA_Variant_setArray(&attr.value, NULL, (UA_Int32) " + "0, &" + typeArr + ");")
     elif not dataTypeNode.isAbstract:
         code.append("UA_STACKARRAY(" + typeStr + ", " + valueName + ", 1);")
+        #code.append(typeStr + " " + valueName + ";")
         code.append("UA_init(" + valueName + ", &" + typeArr + ");")
         code.append("UA_Variant_setScalar(&attr.value, " + valueName + ", &" + typeArr + ");")
-
     return code
 
 def getTypesArrayForValue(nodeset, value):
@@ -307,8 +268,11 @@ def getTypesArrayForValue(nodeset, value):
         typesArray = "UA_TYPES"
     else:
         typesArray = typeNode.typesArray
-    return "&" + typesArray + "[" + typesArray + "_" + \
-            makeCIdentifier(value.__class__.__name__.upper()) + "]"
+    typeName = makeCIdentifier(value.__class__.__name__.upper())
+    if value.alias:
+        typeName = makeCIdentifier(value.alias.upper())
+    return "&" + typesArray + "[" + typesArray + "_" + typeName + "]"
+   
 
 def generateValueCode(node, parentNode, nodeset, bootstrapping=True, encode_binary_size=32000):
     code = []
@@ -343,6 +307,7 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True, encode_bina
         elif isinstance(node.value[0], StatusCode):
             logger.warn("Don't know how to print array of StatusCode in node " + str(parentNode.id))
         else:
+            #array
             if isinstance(node.value[0], ExtensionObject):
                 for idx, v in enumerate(node.value):
                     logger.debug("Building extObj array index " + str(idx))
@@ -350,7 +315,11 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True, encode_bina
                                                                                encode_binary_size=encode_binary_size, global_var_code=codeGlobal)
                     code = code + code1
                     codeCleanup = codeCleanup + codeCleanup1
-            code.append("UA_" + node.value[0].__class__.__name__ + " " + valueName + "[" + str(len(node.value)) + "];")
+            #code.append("UA_" + node.value[0].__class__.__name__ + " " + valueName + "[" + str(len(node.value)) + "];")
+            if node.value[0].alias:
+                code.append("UA_" + node.value[0].alias + " " + valueName + "[" + str(len(node.value)) + "];")
+            else:
+                code.append("UA_" + node.value[0].__class__.__name__ + " " + valueName + "[" + str(len(node.value)) + "];")    
             if isinstance(node.value[0], ExtensionObject):
                 for idx, v in enumerate(node.value):
                     logger.debug("Printing extObj array index " + str(idx))
@@ -384,12 +353,12 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True, encode_bina
                 codeCleanup = codeCleanup + codeCleanup1
             instanceName = generateNodeValueInstanceName(node.value[0], parentNode, 0, 0)
             if isinstance(node.value[0], ExtensionObject):
-                code.append(generateNodeValueCode("UA_" + node.value[0].__class__.__name__ + " *" + valueName + " = " ,
-                            node.value[0], instanceName, valueName, codeGlobal, asIndirect=True ))
-                code.append(
-                    "UA_Variant_setScalar(&attr.value, " + valueName + ", " +
-                    getTypesArrayForValue(nodeset, node.value[0]) + ");")
-
+                #code.append(generateNodeValueCode("UA_" + node.value[0].__class__.__name__ + " *" + valueName + " = " ,
+                #            node.value[0], instanceName, valueName, codeGlobal, asIndirect=True ))
+                #code.append(
+                #    "UA_Variant_setScalar(&attr.value, " + valueName + ", " +
+                #    getTypesArrayForValue(nodeset, node.value[0]) + ");")
+                pass
                 # FIXME: There is no membership definition for extensionObjects generated in this function.
                 # code.append("UA_" + node.value[0].__class__.__name__ + "_deleteMembers(" + valueName + ");")
             else:

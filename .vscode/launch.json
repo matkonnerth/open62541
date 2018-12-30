@@ -15,7 +15,7 @@
                 "--type-bsd", "${workspaceFolder}/examples/nodeset/My.Types.bsd", 
                 "--namespace", "2",    
                 "--no-builtin",
-                "${workspaceFolder}/examples/nodeset/mytypes"],
+                "${workspaceFolder}/examples/nodeset/ua_mytypes"],
             "cwd": "${workspaceFolder}",
         },
         {
@@ -24,7 +24,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/tools/nodeset_compiler/nodeset_compiler.py",
             "console": "integratedTerminal",
-            "args" : ["--generate-ns0","--existing", "${workspaceFolder}/deps/ua-nodeset/Schema/Opc.Ua.NodeSet2.xml",
+            "args" : ["--generate-ns0","--existing", "${workspaceFolder}/tools/schema/Opc.Ua.NodeSet2.Minimal.xml",
                 "--xml", "${workspaceFolder}/examples/nodeset/mynodeset.xml",
                 "--types-array", "UA_TYPES",
                 "--types-array", "UA_MYTYPES",

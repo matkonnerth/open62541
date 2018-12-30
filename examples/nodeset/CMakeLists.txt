@@ -26,7 +26,6 @@ if(UA_COMPILE_AS_CXX)
 endif()
 
 add_example(server_mynodeset server_mynodeset.c mynamespace.c mytypes_generated.c)
-target_include_directories(server_mynodeset PRIVATE ${PROJECT_SOURCE_DIR}/src) # needs an internal header
 
 ###################
 # PLCopen Nodeset #
@@ -60,6 +59,6 @@ if(UA_NAMESPACE_ZERO STREQUAL "FULL")
                 ${PROJECT_BINARY_DIR}/src_generated/ua_namespace_di.c
                 ${PROJECT_BINARY_DIR}/src_generated/ua_namespace_plc.c)
     add_dependencies(server_nodeset_plcopen open62541-generator-ns-plc)
-    target_include_directories(server_nodeset_plcopen PRIVATE ${PROJECT_SOURCE_DIR}/src) # needs an internal header
+    
 
 endif()
