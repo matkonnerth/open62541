@@ -25,6 +25,9 @@ if(UA_COMPILE_AS_CXX)
     set_source_files_properties(${PROJECT_BINARY_DIR}/src_generated/ua_namespace_example.c PROPERTIES LANGUAGE CXX)
 endif()
 
+add_example(server_mynodeset server_mynodeset.c mynamespace.c mytypes_generated.c)
+target_include_directories(server_mynodeset PRIVATE ${PROJECT_SOURCE_DIR}/src) # needs an internal header
+
 ###################
 # PLCopen Nodeset #
 ###################
