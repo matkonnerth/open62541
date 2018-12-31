@@ -43,4 +43,10 @@
     <opc:Field Name="y" TypeName="opc:Int32" />    
   </opc:StructuredType>
 
+  <opc:StructuredType Name="Point3D" BaseType="ua:ExtensionObject">
+    <opc:Field Name="x" TypeName="opc:Double" />    
+    <opc:Field Name="y" TypeName="opc:Double" />   
+    <opc:Field Name="z" TypeName="opc:Double" />   
+  </opc:StructuredType>
+
 </opc:TypeDictionary>

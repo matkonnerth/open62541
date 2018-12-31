@@ -24,7 +24,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/tools/nodeset_compiler/nodeset_compiler.py",
             "console": "integratedTerminal",
-            "args" : ["--generate-ns0","--existing", "${workspaceFolder}/tools/schema/Opc.Ua.NodeSet2.Minimal.xml",
+            "args" : ["--generate-ns0","--existing", "${workspaceFolder}/deps/ua-nodeset/Schema/Opc.Ua.NodeSet2.xml",
                 "--xml", "${workspaceFolder}/examples/nodeset/mynodeset.xml",
                 "--types-array", "UA_TYPES",
                 "--types-array", "UA_MYTYPES",

@@ -91,7 +91,7 @@ def generateVariableNodeCode(node, nodeset, encode_binary_size):
         codeCleanup.append("UA_Array_delete(attr.arrayDimensions, {}, &UA_TYPES[UA_TYPES_UINT32]);".format(node.valueRank))
         if len(node.arrayDimensions) == node.valueRank:
             for idx, v in enumerate(node.arrayDimensions):
-                code.append("attr.arrayDimensions[{}] = {};".format(idx, int(unicode(v))))
+                code.append("attr.arrayDimensions[{}] = {};".format(idx, int(str(v))))
         else:
             for dim in range(0, node.valueRank):
                 code.append("attr.arrayDimensions[{}] = 0;".format(dim))
@@ -173,9 +173,6 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
             logger.error("ExtensionObject contains an ExtensionObject, which is currently not encodable!")
 
 
-    #typeStr = "UA_" + node.alias
-    #TODO: where does this UA come from?
-
     typeBrowseNode = makeCIdentifier(nodeset.getDataTypeNode(parent.dataType).browseName.name)
     #TODO: review this
     if typeBrowseNode == "NumericRange":
@@ -186,8 +183,6 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
 
     typeString = "UA_" + typeBrowseNode
     code.append("UA_STACKARRAY(" + typeString + ", " + instanceName+ ", 1);")
-
-    #TODO: review this
     typeArr = nodeset.getDataTypeNode(parent.dataType).typesArray
     typeString = nodeset.getDataTypeNode(parent.dataType).browseName.name.upper()
     typeArrayString = typeArr + "[" + typeArr + "_" + typeString + "]"
@@ -326,8 +321,9 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
                     code = code + code1
                     codeCleanup = codeCleanup + codeCleanup1             
 
-            code.append("UA_" + getTypeBrowseName(dataTypeNode) + " " + valueName + "[" + str(len(node.value)) + "];")               
+                          
             if isinstance(node.value[0], ExtensionObject):
+                code.append("UA_" + getTypeBrowseName(dataTypeNode) + " " + valueName + "[" + str(len(node.value)) + "];") 
                 for idx, v in enumerate(node.value):
                     logger.debug("Printing extObj array index " + str(idx))
                     instanceName = generateNodeValueInstanceName(v, parentNode, 0, idx)
@@ -336,6 +332,7 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
                         v, instanceName, valueName, codeGlobal))
                     
             else:
+                code.append("UA_" + node.value[0].__class__.__name__ + " " + valueName + "[" + str(len(node.value)) + "];")
                 for idx, v in enumerate(node.value):
                     instanceName = generateNodeValueInstanceName(v, parentNode, 0, idx)
                     code.append(generateNodeValueCode(

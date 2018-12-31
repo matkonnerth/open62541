@@ -41,22 +41,12 @@ int main(int argc, char** argv) {
         UA_Variant out;
         UA_Variant_init(&out);
         UA_Server_readValue(server, UA_NODEID_NUMERIC(2,10002), &out);
+        UA_Point* p = (UA_Point*)out.data;      
+        printf("point 2d x: %d y: %d \n", p->x, p->y);
 
-        UA_Point* p = (UA_Point*)out.data;
-
-        if(p)
-        {}
+        UA_Server_readValue(server, UA_NODEID_NUMERIC(2,6002), &out);
             
-
-        // Do some additional stuff with the nodes
-
-        // this will just get the namespace index, since it is already added to the server
-        //UA_UInt16 nsIdx = UA_Server_addNamespace(server, "http://yourorganisation.org/test/");
-
-        //UA_NodeId testInstanceId = UA_NODEID_NUMERIC(nsIdx, UA_EXAMPLE_NSID_TESTINSTANCE);
-
-        //UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "The testInstance has ns=%d;id=%d",
-        //            testInstanceId.namespaceIndex, testInstanceId.identifier.numeric);
+        printf("point 3d x: %f y: %f z: %f \n", ((UA_Point3D*)out.data)->x, ((UA_Point3D*)out.data)->y, ((UA_Point3D*)out.data)->z);   
 
         retval = UA_Server_run(server, &running);
     }

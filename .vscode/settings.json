@@ -7,6 +7,8 @@
         "ua_namespace_di.h": "c",
         "ua_types_di_generated.h": "c",
         "mynamespace.h": "c",
-        "mytypes_generated.h": "c"
-    }
+        "mytypes_generated.h": "c",
+        "ua_namespace_mynodeset.h": "c"
+    },
+    "C_Cpp.configurationWarnings": "Disabled"
 }
