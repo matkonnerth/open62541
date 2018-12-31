@@ -10,46 +10,36 @@
         <Alias Alias="HasSubtype">i=45</Alias>
         <Alias Alias="HasComponent">i=47</Alias>
         <Alias Alias="Argument">i=296</Alias>
-    </Aliases>
-    <!-- Following object has only references to nodes defined after itself -->
-    <UAObject NodeId="ns=1;i=5001" BrowseName="1:testInstance">
-        <DisplayName>testInstance</DisplayName>
-        <References>
-            <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5002</Reference>
-            <Reference ReferenceType="HasTypeDefinition">ns=1;i=1001</Reference>
-            <Reference ReferenceType="HasComponent">ns=1;i=6002</Reference>
-        </References>
-    </UAObject>
-    <UAObject NodeId="ns=1;i=5002" BrowseName="1:testFolder">
-        <DisplayName>testFolder</DisplayName>
+        <Alias Alias="IdType">i=256</Alias>
+    </Aliases>    
+    <UAObject NodeId="ns=1;i=5001" BrowseName="1:Structs">
+        <DisplayName>Structs</DisplayName>
         <References>
             <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
             <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
         </References>
     </UAObject>
-    <UAObjectType NodeId="ns=1;i=1001" BrowseName="1:testType">
-        <DisplayName>testType</DisplayName>
+    <UAObject NodeId="ns=1;i=5100" BrowseName="1:BaseDataTypes">
+        <DisplayName>BaseDataTypes</DisplayName>
         <References>
-            <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
-            <Reference ReferenceType="HasComponent">ns=1;i=6001</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+            <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
         </References>
-    </UAObjectType>
-    <UAVariable DataType="Double" ParentNodeId="ns=1;i=1001" NodeId="ns=1;i=6001" BrowseName="1:Var1" UserAccessLevel="3" AccessLevel="3">
-        <DisplayName>Var1</DisplayName>
+    </UAObject>    
+    <UAVariable DataType="Double" ParentNodeId="ns=1;i=5100" NodeId="ns=1;i=5101" BrowseName="1:Double" UserAccessLevel="3" AccessLevel="3">
+        <DisplayName>Double</DisplayName>
         <References>
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
             <Reference ReferenceType="HasModellingRule">i=78</Reference>
-            <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1001</Reference>
         </References>
         <Value>
             <uax:Double>42.0</uax:Double>
         </Value>
     </UAVariable>
-    <UAVariable ParentNodeId="ns=1;i=5001" NodeId="ns=1;i=6002" BrowseName="1:Var1" DataType="i=7" UserAccessLevel="3" AccessLevel="3">
-        <DisplayName>Var2</DisplayName>
+    <UAVariable ParentNodeId="ns=1;i=5100" NodeId="ns=1;i=5102" BrowseName="1:Uint32" DataType="i=7" UserAccessLevel="3" AccessLevel="3" ValueRank="1">
+        <DisplayName>Uint32</DisplayName>
         <References>
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
-            <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>
         </References>
         <Value>
             <ListOfUInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
@@ -63,20 +53,12 @@
         <DisplayName>Point</DisplayName>
         <References>
             <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
-            <Reference ReferenceType="HasEncoding">ns=1;i=10003</Reference>
         </References>
         <Definition Name="Point">
         <Field Name="x" DataType="i=6" />
         <Field Name="y" DataType="i=6" />        
         </Definition>
     </UADataType>
-    <UAObject SymbolicName="DefaultBinary" NodeId="ns=1;i=10003" BrowseName="Default Binary">
-        <DisplayName>Default Binary</DisplayName>
-        <References>
-            <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=10001</Reference>
-            <Reference ReferenceType="HasTypeDefinition">i=76</Reference>            
-        </References>
-    </UAObject>
     <UAVariable ParentNodeId="ns=1;i=5001" NodeId="ns=1;i=10002" BrowseName="1:PointA" DataType="ns=1;i=10001" UserAccessLevel="3" AccessLevel="3">
         <DisplayName>PointA</DisplayName>
         <References>
@@ -97,8 +79,63 @@
             </ExtensionObject>
         </Value>
     </UAVariable>
+    <UAVariable ParentNodeId="ns=1;i=5001" NodeId="ns=1;i=10004" BrowseName="1:PointC_Array" DataType="ns=1;i=10001" UserAccessLevel="3" AccessLevel="3" ValueRank="1">
+        <DisplayName>PointC_Array</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>
+        </References> 
+        <Value>  
+            <ListOfExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+                <ExtensionObject>
+                    <TypeId>
+                        <Identifier>ns=1;i=10001</Identifier>
+                    </TypeId>
+                    <Body>                   
+                        <Point xmlns="http://http://yourorganisation.org/test/">
+                            <x>1</x>
+                            <y>2</y>
+                        </Point>
+                    </Body>
+                </ExtensionObject>
+                <ExtensionObject>
+                    <TypeId>
+                        <Identifier>ns=1;i=10001</Identifier>
+                    </TypeId>
+                    <Body>                   
+                        <Point xmlns="http://http://yourorganisation.org/test/">
+                            <x>3</x>
+                            <y>4</y>
+                        </Point>
+                    </Body>
+                </ExtensionObject>
+                <ExtensionObject>
+                    <TypeId>
+                        <Identifier>ns=1;i=10001</Identifier>
+                    </TypeId>
+                    <Body>                   
+                        <Point xmlns="http://http://yourorganisation.org/test/">
+                            <x>5</x>
+                            <y>6</y>
+                        </Point>
+                    </Body>
+                </ExtensionObject>
+                <ExtensionObject>
+                    <TypeId>
+                        <Identifier>ns=1;i=10001</Identifier>
+                    </TypeId>
+                    <Body>                   
+                        <Point xmlns="http://http://yourorganisation.org/test/">
+                            <x>7</x>
+                            <y>8</y>
+                        </Point>
+                    </Body>
+                </ExtensionObject>
+            </ListOfExtensionObject>
+        </Value>
+    </UAVariable>
     <UAVariable ParentNodeId="ns=1;i=5001" NodeId="ns=1;i=10005" BrowseName="1:PointB" DataType="ns=1;i=10001" UserAccessLevel="3" AccessLevel="3">
-        <DisplayName>PointA</DisplayName>
+        <DisplayName>PointB_noValue</DisplayName>
         <References>
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
             <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>
@@ -158,4 +195,77 @@
       </ListOfExtensionObject>
     </Value>
   </UAVariable>
+  <UAVariable NodeId="ns=1;i=15962" BrowseName="StaticNodeIdTypes" ParentNodeId="ns=1;i=5001" DataType="i=256" ValueRank="1">
+    <DisplayName>StaticNodeIdTypes_Array</DisplayName>
+    <Description>A list of IdTypes for nodes which are the same in every server that exposes them.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+    <Value>
+      <ListOfInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <Int32>0</Int32>
+        <Int32>1</Int32>
+        <Int32>3</Int32>
+        <Int32>4</Int32>
+        <Int32>5</Int32>
+        <Int32>6</Int32>
+        <Int32>7</Int32>        
+      </ListOfInt32>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15963" BrowseName="StaticNodeIdTypes" ParentNodeId="ns=1;i=5001" DataType="i=256" ValueRank="-1">
+    <DisplayName>StaticNodeIdTypes_Scalar</DisplayName>
+    <Description>A list of IdTypes for nodes which are the same in every server that exposes them.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+    <Value>
+      <ListOfInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <Int32>1</Int32>
+      </ListOfInt32>
+    </Value>
+  </UAVariable>
+  <UAVariable DataType="String" NodeId="ns=1;i=16001" BrowseName="1:String1_scalar" UserAccessLevel="3" AccessLevel="3" ValueRank="1">
+        <DisplayName>String1_scalar</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+        </References>
+        <Value>
+            <ListOfString>
+                <uax:String>Hello World</uax:String>
+                <uax:String>Hello World2</uax:String>
+                <uax:String>Hello World3</uax:String>
+            </ListOfString>   
+        </Value>
+    </UAVariable>
+    <UAVariable DataType="ByteString" NodeId="ns=1;i=16002" BrowseName="1:ByteString_Scalar" UserAccessLevel="3" AccessLevel="3">
+        <DisplayName>ByteString_Scalar</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+        </References>
+        <Value>
+            <uax:ByteString>YWJjZGVmZ2gwMTI/Il87</uax:ByteString>
+        </Value>
+    </UAVariable>
+    <!-->
+    <UAVariable DataType="i=307" NodeId="ns=1;i=16003" BrowseName="1:ApplicationTypeEnum" UserAccessLevel="3" AccessLevel="3" ValueRank="1">
+        <DisplayName>Enum</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+        </References>
+        <Value>
+            <ListOfInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+                <Int32>0</Int32>
+                <Int32>1</Int32>
+                <Int32>2</Int32>
+                <Int32>3</Int32>
+            </ListOfInt32>
+        </Value>
+    </UAVariable>
+    -->
 </UANodeSet>

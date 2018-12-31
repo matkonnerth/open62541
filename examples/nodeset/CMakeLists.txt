@@ -25,7 +25,20 @@ if(UA_COMPILE_AS_CXX)
     set_source_files_properties(${PROJECT_BINARY_DIR}/src_generated/ua_namespace_example.c PROPERTIES LANGUAGE CXX)
 endif()
 
-add_example(server_mynodeset server_mynodeset.c mynamespace.c mytypes_generated.c)
+if(UA_NAMESPACE_ZERO STREQUAL "FULL")
+    ua_generate_nodeset_and_datatypes(
+        NAME "mynodeset"
+        FILE_CSV "${PROJECT_SOURCE_DIR}/examples/nodeset/mynodeset.csv"
+        FILE_BSD "${PROJECT_SOURCE_DIR}/examples/nodeset/My.Types.bsd"
+        NAMESPACE_IDX 2
+        FILE_NS "${PROJECT_SOURCE_DIR}/examples/nodeset/mynodeset.xml"
+        INTERNAL
+    )
+    add_example(server_mynodeset server_mynodeset.c 
+        ${PROJECT_BINARY_DIR}/src_generated/ua_namespace_mynodeset.c
+        ${PROJECT_BINARY_DIR}/src_generated/ua_types_mynodeset_generated.c)
+    add_dependencies(server_mynodeset open62541-generator-ns-mynodeset)
+endif()
 
 ###################
 # PLCopen Nodeset #

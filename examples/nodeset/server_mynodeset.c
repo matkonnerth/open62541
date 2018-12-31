@@ -4,13 +4,12 @@
 #include <ua_server.h>
 #include <ua_config_default.h>
 #include <ua_log_stdout.h>
+#include <ua_client_highlevel.h>
 
 #include <signal.h>
 
-/* Files example_namespace.h and example_namespace.c are created from server_nodeset.xml in the
- * /src_generated directory by CMake */
-#include "mynamespace.h"
-//#include "example_nodeids.h"
+#include "ua_namespace_mynodeset.h"
+
 
 UA_Boolean running = true;
 
@@ -18,6 +17,10 @@ static void stopHandler(int sign) {
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "received ctrl-c");
     running = false;
 }
+
+
+
+
 
 int main(int argc, char** argv) {
     signal(SIGINT, stopHandler);
@@ -28,12 +31,22 @@ int main(int argc, char** argv) {
 
     UA_StatusCode retval;
     /* create nodes from nodeset */
-    if(mynamespace(server) != UA_STATUSCODE_GOOD) {
+    if( ua_namespace_mynodeset (server) != UA_STATUSCODE_GOOD) {
         UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Could not add the example nodeset. "
         "Check previous output for any error.");
-        //retval = UA_STATUSCODE_BADUNEXPECTEDERROR;
-        retval = UA_Server_run(server, &running);
+        retval = UA_STATUSCODE_BADUNEXPECTEDERROR;
+        //retval = UA_Server_run(server, &running);
     } else {
+
+        UA_Variant out;
+        UA_Variant_init(&out);
+        UA_Server_readValue(server, UA_NODEID_NUMERIC(2,10002), &out);
+
+        UA_Point* p = (UA_Point*)out.data;
+
+        if(p)
+        {}
+            
 
         // Do some additional stuff with the nodes
 
