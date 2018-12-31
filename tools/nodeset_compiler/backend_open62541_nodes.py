@@ -187,6 +187,11 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
     typeString = "UA_" + typeBrowseNode
     code.append("UA_STACKARRAY(" + typeString + ", " + instanceName+ ", 1);")
 
+    #TODO: review this
+    typeArr = nodeset.getDataTypeNode(parent.dataType).typesArray
+    typeString = nodeset.getDataTypeNode(parent.dataType).browseName.name.upper()
+    typeArrayString = typeArr + "[" + typeArr + "_" + typeString + "]"
+    code.append("UA_init(" + instanceName + ", &" + typeArrayString + ");")
     
     # Assign data to the struct contents
     # Track the encoding rule definition to detect arrays and/or ExtensionObjects
@@ -233,11 +238,7 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
                 code.append(generateNodeValueCode(valueName + " = ",
                             subv, instanceName, valueName, global_var_code, asIndirect=True))
     
-    #TODO: review this
-    typeArr = nodeset.getDataTypeNode(parent.dataType).typesArray
-    typeString = nodeset.getDataTypeNode(parent.dataType).browseName.name.upper()
-    typeArrayString = typeArr + "[" + typeArr + "_" + typeString + "]"
-    code.append("UA_init(" + instanceName + ", &" + typeArrayString + ");")
+    
     code.append("UA_Variant_setScalar(&attr.value, " + instanceName + ", &" + typeArrayString + ");")
     return [code, codeCleanup]
 
