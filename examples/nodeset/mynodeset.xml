@@ -55,19 +55,25 @@
             <Reference ReferenceType="Organizes">ns=1;i=16001</Reference>
         </References>
     </UAObject>
-    <UAVariable DataType="Argument" NodeId="ns=1;i=16002" BrowseName="1:ByteString_Scalar" AccessLevel="3">
+    <UAVariable DataType="ByteString" NodeId="ns=1;i=16002" BrowseName="1:ByteString_Scalar" AccessLevel="3">
         <DisplayName>ByteString_Scalar</DisplayName>
         <References>
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
             <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5100</Reference>
         </References>
+        <Value>
+            <uax:ByteString>SGVsbG9Xb3JsZA==</uax:ByteString>
+        </Value>
     </UAVariable>
-    <UAVariable DataType="Argument" ValueRank="1" NodeId="ns=1;i=16001" BrowseName="1:String1_scalar" AccessLevel="3">
+    <UAVariable DataType="String" NodeId="ns=1;i=16001" BrowseName="1:String1_scalar" AccessLevel="3">
         <DisplayName>String1_scalar</DisplayName>
         <References>
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
             <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5100</Reference>
         </References>
+        <Value>
+            <uax:String>Hello World</uax:String>
+        </Value>
     </UAVariable>
     <UAObject NodeId="ns=1;i=5001" BrowseName="1:Structs">
         <DisplayName>Structs</DisplayName>
@@ -212,6 +218,61 @@
             </uax:ListOfExtensionObject>
         </Value>
     </UAVariable>
+    <UAVariable DataType="Point" ParentNodeId="ns=1;i=5001" ValueRank="2" NodeId="ns=1;i=10006" ArrayDimensions="2,2" BrowseName="1:Point_MultiDimArray" AccessLevel="3">
+        <DisplayName>Point_MultiDimArray</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>
+        </References>
+        <Value>
+            <uax:ListOfExtensionObject>
+                <uax:ExtensionObject>
+                    <uax:TypeId>
+                        <uax:Identifier>i=0</uax:Identifier>
+                    </uax:TypeId>
+                    <uax:Body>
+                        <Point xmlns="http://yourorganisation.org/test/Types.xsd">
+                            <x>1</x>
+                            <y>2</y>
+                        </Point>
+                    </uax:Body>
+                </uax:ExtensionObject>
+                <uax:ExtensionObject>
+                    <uax:TypeId>
+                        <uax:Identifier>i=0</uax:Identifier>
+                    </uax:TypeId>
+                    <uax:Body>
+                        <Point xmlns="http://yourorganisation.org/test/Types.xsd">
+                            <x>3</x>
+                            <y>4</y>
+                        </Point>
+                    </uax:Body>
+                </uax:ExtensionObject>
+                <uax:ExtensionObject>
+                    <uax:TypeId>
+                        <uax:Identifier>i=0</uax:Identifier>
+                    </uax:TypeId>
+                    <uax:Body>
+                        <Point xmlns="http://yourorganisation.org/test/Types.xsd">
+                            <x>5</x>
+                            <y>6</y>
+                        </Point>
+                    </uax:Body>
+                </uax:ExtensionObject>
+                <uax:ExtensionObject>
+                    <uax:TypeId>
+                        <uax:Identifier>i=0</uax:Identifier>
+                    </uax:TypeId>
+                    <uax:Body>
+                        <Point xmlns="http://yourorganisation.org/test/Types.xsd">
+                            <x>7</x>
+                            <y>8</y>
+                        </Point>
+                    </uax:Body>
+                </uax:ExtensionObject>
+            </uax:ListOfExtensionObject>
+        </Value>
+    </UAVariable>
     <UAObject SymbolicName="DefaultBinary" NodeId="ns=1;i=5002" BrowseName="Default Binary">
         <DisplayName>Default Binary</DisplayName>
         <References>
@@ -287,6 +348,23 @@
                 <Int32>2</Int32>
                 <Int32>3</Int32>
             </ListOfInt32>
+        </Value>
+    </UAVariable>
+    <UAVariable DataType="Int32" ValueRank="2" NodeId="ns=1;i=6003" ArrayDimensions="3,2" BrowseName="1:MultidimArray1" AccessLevel="3">
+        <DisplayName>MultidimArray1</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5100</Reference>
+        </References>
+        <Value>
+            <uax:ListOfInt32>
+                <uax:Int32>11</uax:Int32>
+                <uax:Int32>21</uax:Int32>
+                <uax:Int32>31</uax:Int32>
+                <uax:Int32>12</uax:Int32>
+                <uax:Int32>22</uax:Int32>
+                <uax:Int32>32</uax:Int32>
+            </uax:ListOfInt32>
         </Value>
     </UAVariable>
 </UANodeSet>
