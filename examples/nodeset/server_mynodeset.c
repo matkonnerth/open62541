@@ -19,7 +19,24 @@ static void stopHandler(int sign) {
 }
 
 
+static void
+addVariable(UA_Server *server) {
+    /* Define the attribute of the myInteger variable node */
+    UA_VariableAttributes attr = UA_VariableAttributes_default;
+    UA_String myString = UA_STRING("Hello World !");
+    UA_Variant_setScalar(&attr.value, &myString, &UA_TYPES[UA_TYPES_STRING]);
+    attr.description = UA_LOCALIZEDTEXT("en-US","the answer");
+    attr.displayName = UA_LOCALIZEDTEXT("en-US","the answer");
+    attr.dataType = UA_TYPES[UA_TYPES_STRING].typeId;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
 
+    /* Add the variable node to the information model */
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    UA_Server_addVariableNode(server, UA_NODEID_NULL, parentNodeId,
+                              parentReferenceNodeId, UA_QUALIFIEDNAME(1, "myString"),
+                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, NULL, NULL);
+}
 
 
 int main(int argc, char** argv) {
@@ -44,9 +61,23 @@ int main(int argc, char** argv) {
         UA_Point* p = (UA_Point*)out.data;      
         printf("point 2d x: %d y: %d \n", p->x, p->y);
 
+        for(int i=0; i<1000; i++)
+        {
+             p->y++;
+            p->x++;
+        }
+       
+
         UA_Server_readValue(server, UA_NODEID_NUMERIC(2,6002), &out);
             
         printf("point 3d x: %f y: %f z: %f \n", ((UA_Point3D*)out.data)->x, ((UA_Point3D*)out.data)->y, ((UA_Point3D*)out.data)->z);   
+
+
+        addVariable(server);
+        //UA_Variant var;
+        //UA_
+
+        //UA_Server_writeValue
 
         retval = UA_Server_run(server, &running);
     }

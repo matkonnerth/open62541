@@ -86,15 +86,17 @@ def generateVariableNodeCode(node, nodeset, encode_binary_size):
     code.append("attr.valueRank = %d;" % node.valueRank)
     if node.valueRank > 0:
         code.append("attr.arrayDimensionsSize = %d;" % node.valueRank)
-        code.append("attr.arrayDimensions = (UA_UInt32 *)UA_Array_new({}, &UA_TYPES[UA_TYPES_UINT32]);".format(node.valueRank))
-        code.append("if (!attr.arrayDimensions) return UA_STATUSCODE_BADOUTOFMEMORY;")
-        codeCleanup.append("UA_Array_delete(attr.arrayDimensions, {}, &UA_TYPES[UA_TYPES_UINT32]);".format(node.valueRank))
+        code.append("UA_UInt32 arrayDimensions[{}];".format(node.valueRank))
+        #code.append("attr.arrayDimensions = (UA_UInt32 *)UA_Array_new({}, &UA_TYPES[UA_TYPES_UINT32]);".format(node.valueRank))
+        #code.append("if (!attr.arrayDimensions) return UA_STATUSCODE_BADOUTOFMEMORY;")
+        #codeCleanup.append("UA_Array_delete(attr.arrayDimensions, {}, &UA_TYPES[UA_TYPES_UINT32]);".format(node.valueRank))
         if len(node.arrayDimensions) == node.valueRank:
             for idx, v in enumerate(node.arrayDimensions):
-                code.append("attr.arrayDimensions[{}] = {};".format(idx, int(str(v))))
+                code.append("arrayDimensions[{}] = {};".format(idx, int(str(v))))
         else:
             for dim in range(0, node.valueRank):
-                code.append("attr.arrayDimensions[{}] = 0;".format(dim))
+                code.append("arrayDimensions[{}] = 0;".format(dim))
+        code.append("attr.arrayDimensions = &arrayDimensions[0];")
 
     if node.dataType is not None:
         if isinstance(node.dataType, NodeId) and node.dataType.ns == 0 and node.dataType.i == 0:
