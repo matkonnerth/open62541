@@ -68,12 +68,31 @@
                     "ignoreFailures": true
                 }
             ]
-        }
+        },
         {
             "name": "(gdb) mynodeset",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}//build/bin/examples/server_mynodeset",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) client subscriptions",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}//build/bin/tests/check_client_subscriptions",
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
