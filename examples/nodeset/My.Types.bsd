@@ -49,4 +49,12 @@
     <opc:Field Name="z" TypeName="opc:Double" />   
   </opc:StructuredType>
 
+   <opc:StructuredType Name="PointWithArray" BaseType="ua:ExtensionObject">
+    <opc:Field Name="x" TypeName="opc:Double" />    
+    <opc:Field Name="y" TypeName="opc:Double" />   
+    <opc:Field Name="z" TypeName="opc:Double" />   
+    <opc:Field Name="array1Size" TypeName="opc:UInt32" />
+    <opc:Field Name="array1" TypeName="opc:Double" LengthField="array1Size" />
+  </opc:StructuredType>
+
 </opc:TypeDictionary>

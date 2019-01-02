@@ -15,3 +15,4 @@ Structs_StaticNodeIdTypes,15962,Variable
 Structs_StaticNodeIdTypes,15963,Variable
 BaseDataTypes_String1_scalar,16001,Variable
 BaseDataTypes_ByteString_Scalar,16002,Variable
+PointWithArray,3003,DataType

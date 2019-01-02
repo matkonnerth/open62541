@@ -125,8 +125,8 @@
                         <DataType>
                             <Identifier>i=1</Identifier>
                         </DataType>
-                        <ValueRank>-1</ValueRank>
-                        <ArrayDimensions/>
+                        <ValueRank>-1</ValueRank>                        
+                        <ArrayDimensions>0</ArrayDimensions>
                         <Description>
                             <Locale>en</Locale>
                             <Text>myDescritipon</Text>
@@ -365,6 +365,44 @@
                 <uax:Int32>22</uax:Int32>
                 <uax:Int32>32</uax:Int32>
             </uax:ListOfInt32>
+        </Value>
+    </UAVariable>
+    <UADataType NodeId="ns=1;i=3003" BrowseName="1:PointWithArray">
+        <DisplayName>PointWithArray</DisplayName>
+        <References>
+            <Reference ReferenceType="HasEncoding">ns=1;i=5001</Reference>
+            <Reference ReferenceType="HasEncoding">ns=1;i=5002</Reference>
+            <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+        </References>
+        <Definition Name="1:PointWithArray">
+            <Field DataType="Double" Name="x"/>
+            <Field DataType="Double" Name="y"/>
+            <Field DataType="Double" Name="z"/>
+            <Field DataType="UInt32" Name="array1Size"/>
+            <Field DataType="Double" ValueRank="1" Name="array1"/>
+        </Definition>
+    </UADataType>
+    <UAVariable DataType="ns=1;i=3003" NodeId="ns=1;i=6008" BrowseName="1:PointWithArray1" UserAccessLevel="3" AccessLevel="3">
+        <DisplayName>PointWithArray1</DisplayName>
+        <References>
+            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+        </References>
+        <Value>
+            <uax:ExtensionObject>
+                <uax:TypeId>
+                    <uax:Identifier>ns=1;i=3003</uax:Identifier>
+                </uax:TypeId>
+                <uax:Body>
+                    <PointWithArray xmlns="http://yourorganisation.org/exported2/Types.xsd">
+                        <x>1.1</x>
+                        <y>2.2</y>
+                        <z>3.3</z>
+                        <array1Size>1</array1Size>
+                        <!--<array1><Double>1.1</Double></array1> -->                    
+                    </PointWithArray>
+                </uax:Body>
+            </uax:ExtensionObject>
         </Value>
     </UAVariable>
 </UANodeSet>

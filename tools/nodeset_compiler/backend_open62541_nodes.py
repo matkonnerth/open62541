@@ -159,6 +159,9 @@ def generateVariableTypeNodeCode(node, nodeset, encode_binary_size):
                     code += generateValueCodeDummy(dataTypeNode, nodeset.nodes[node.id], nodeset)
     return [code, codeCleanup, codeGlobal]
 
+def lowerFirstChar(inputString):
+    return inputString[0].lower() + inputString[1:]
+
 def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, recursionDepth=0, arrayIndex=0):
     code = [""]
     codeCleanup = [""]
@@ -189,6 +192,8 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
     typeString = nodeset.getDataTypeNode(parent.dataType).browseName.name.upper()
     typeArrayString = typeArr + "[" + typeArr + "_" + typeString + "]"
     code.append("UA_init(" + instanceName + ", &" + typeArrayString + ");")
+
+    
     
     # Assign data to the struct contents
     # Track the encoding rule definition to detect arrays and/or ExtensionObjects
@@ -196,13 +201,12 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
     for subv in node.value:
         encField = node.encodingRule[encFieldIdx]
         encFieldIdx = encFieldIdx + 1
+        memberName= lowerFirstChar(encField[0])
         logger.debug(
-            "Encoding of field " + subv.alias + " is " + str(subv.encodingRule) + "defined by " + str(encField))
+            "Encoding of field " + memberName + " is " + str(subv.encodingRule) + "defined by " + str(encField))
         # Check if this is an array
-        if subv.valueRank is None or subv.valueRank == 0:
-            #TODO: this is strange
-            valueName = instanceName + "->" + subv.alias[0].lower() + subv.alias[1:]
-            #valueName = instanceName + "_struct." + subv.alias
+        if subv.valueRank is None or subv.valueRank == 0:            
+            valueName = instanceName + "->" + memberName
             code.append(generateNodeValueCode(valueName + " = " ,
                         subv, instanceName,valueName, global_var_code, asIndirect=False))
         else:
@@ -224,14 +228,15 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
                     code.append(generateNodeValueCode(valueName + " = ", subvv, instanceName, valueName, global_var_code))
                 code.append("}")
             else:
-                code.append(instanceName + "->" + subv.alias[0].lower()+ subv.alias[1:]+ "Size = 1;")
+                memberName = lowerFirstChar(encField[0]) 
+                code.append(instanceName + "->" + memberName + "Size = 1;")
                 code.append(
                     "{0}->{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2}));".format(
-                        instanceName, subv.alias[0].lower()+ subv.alias[1:], subv.__class__.__name__))
+                        instanceName, memberName , subv.__class__.__name__))
                 code.append("if (!{0}->{1}) return UA_STATUSCODE_BADOUTOFMEMORY;".format(
-                    instanceName, subv.alias[0].lower()+ subv.alias[1:]))
-                codeCleanup.append("UA_free({0}->{1});".format(instanceName, subv.alias[0].lower()+ subv.alias[1:]))
-                valueName = instanceName + "->" + subv.alias[0].lower()+ subv.alias[1:] + "[0]"
+                    instanceName, memberName))
+                codeCleanup.append("UA_free({0}->{1});".format(instanceName, memberName))
+                valueName = instanceName + "->" + memberName + "[0]"
                 code.append(generateNodeValueCode(valueName + " = ",
                             subv, instanceName, valueName, global_var_code, asIndirect=True))
     
