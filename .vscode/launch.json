@@ -70,10 +70,10 @@
             ]
         },
         {
-            "name": "(gdb) mynodeset",
+            "name": "(gdb) testnodeset",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}//build/bin/examples/server_mynodeset",
+            "program": "${workspaceFolder}//build/bin/examples/server_testnodeset",
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
