@@ -27,17 +27,17 @@ endif()
 
 if(UA_NAMESPACE_ZERO STREQUAL "FULL")
     ua_generate_nodeset_and_datatypes(
-        NAME "mynodeset"
-        FILE_CSV "${PROJECT_SOURCE_DIR}/examples/nodeset/mynodeset.csv"
-        FILE_BSD "${PROJECT_SOURCE_DIR}/examples/nodeset/My.Types.bsd"
+        NAME "testnodeset"
+        FILE_CSV "${PROJECT_SOURCE_DIR}/examples/nodeset/testnodeset.csv"
+        FILE_BSD "${PROJECT_SOURCE_DIR}/examples/nodeset/Test.Types.bsd"
         NAMESPACE_IDX 2
-        FILE_NS "${PROJECT_SOURCE_DIR}/examples/nodeset/mynodeset.xml"
+        FILE_NS "${PROJECT_SOURCE_DIR}/examples/nodeset/testnodeset.xml"
         INTERNAL
     )
-    add_example(server_mynodeset server_mynodeset.c 
-        ${PROJECT_BINARY_DIR}/src_generated/ua_namespace_mynodeset.c
-        ${PROJECT_BINARY_DIR}/src_generated/ua_types_mynodeset_generated.c)
-    add_dependencies(server_mynodeset open62541-generator-ns-mynodeset)
+    add_example(server_testnodeset server_testnodeset.c 
+        ${PROJECT_BINARY_DIR}/src_generated/ua_namespace_testnodeset.c
+        ${PROJECT_BINARY_DIR}/src_generated/ua_types_testnodeset_generated.c)
+    add_dependencies(server_testnodeset open62541-generator-ns-testnodeset)
 endif()
 
 ###################
