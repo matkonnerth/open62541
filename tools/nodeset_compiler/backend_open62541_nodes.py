@@ -211,7 +211,7 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
                         subv, instanceName,valueName, global_var_code, asIndirect=False))
         else:
             if isinstance(subv, list):
-                # this is an array
+                # this is an
                 code.append(instanceName + subv.alias + "Size = " + str(len(subv)) + ";")
                 code.append(
                      "{0}->{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2})*{3});".format(
@@ -228,17 +228,19 @@ def generateExtensionObjectSubtypeCode(node, parent, nodeset, global_var_code, r
                     code.append(generateNodeValueCode(valueName + " = ", subvv, instanceName, valueName, global_var_code))
                 code.append("}")
             else:
-                memberName = lowerFirstChar(encField[0]) 
-                code.append(instanceName + "->" + memberName + "Size = 1;")
-                code.append(
-                    "{0}->{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2}));".format(
-                        instanceName, memberName , subv.__class__.__name__))
-                code.append("if (!{0}->{1}) return UA_STATUSCODE_BADOUTOFMEMORY;".format(
-                    instanceName, memberName))
-                codeCleanup.append("UA_free({0}->{1});".format(instanceName, memberName))
-                valueName = instanceName + "->" + memberName + "[0]"
-                code.append(generateNodeValueCode(valueName + " = ",
-                            subv, instanceName, valueName, global_var_code, asIndirect=True))
+                memberName = lowerFirstChar(encField[0])                 
+                code.append(generateNodeValueCode(instanceName + "->" + memberName + "Size = ", subv, instanceName,valueName, global_var_code, asIndirect=False))
+                
+                
+                #code.append(
+                #    "{0}->{1} = (UA_{2}*) UA_malloc(sizeof(UA_{2}));".format(
+                #        instanceName, memberName , subv.__class__.__name__))
+                #code.append("if (!{0}->{1}) return UA_STATUSCODE_BADOUTOFMEMORY;".format(
+                #    instanceName, memberName))
+                #codeCleanup.append("UA_free({0}->{1});".format(instanceName, memberName))
+                #valueName = instanceName + "->" + memberName + "[0]"
+                #code.append(generateNodeValueCode(valueName + " = ",
+                #            subv, instanceName, valueName, global_var_code, asIndirect=True))
     
     
     code.append("UA_Variant_setScalar(&attr.value, " + instanceName + ", &" + typeArrayString + ");")
@@ -326,7 +328,7 @@ def generateValueCode(node, parentNode, nodeset, bootstrapping=True):
                     codeCleanup = codeCleanup + codeCleanup1             
 
                           
-            if isinstance(node.value[0], ExtensionObject):
+            #if isinstance(node.value[0], ExtensionObject):
                 code.append("UA_" + getTypeBrowseName(dataTypeNode) + " " + valueName + "[" + str(len(node.value)) + "];") 
                 for idx, v in enumerate(node.value):
                     logger.debug("Printing extObj array index " + str(idx))

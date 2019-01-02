@@ -75,6 +75,7 @@ typeCheckArguments(UA_Server *server, UA_Session *session,
     /* Type-check every argument against the definition */
     UA_StatusCode retval = UA_STATUSCODE_GOOD;
     UA_Argument *argReqs = (UA_Argument*)argRequirements->value.data.value.value.data;
+    //DimSize=1, Dimensions=0
     for(size_t i = 0; i < argReqsSize; ++i) {
         if(!compatibleValue(server, session, &argReqs[i].dataType, argReqs[i].valueRank,
                             argReqs[i].arrayDimensionsSize, argReqs[i].arrayDimensions,
@@ -133,10 +134,10 @@ callWithMethodAndObject(UA_Server *server, UA_Session *session,
     }
 
     /* Is there a method to execute? */
-    if(!method->method) {
-        result->statusCode = UA_STATUSCODE_BADINTERNALERROR;
-        return;
-    }
+    //if(!method->method) {
+        //result->statusCode = UA_STATUSCODE_BADINTERNALERROR;
+        //return;
+    //}
 
     /* Verify method/object relations. Object must have a hasComponent or a
      * subtype of hasComponent reference to the method node. Therefore, check
