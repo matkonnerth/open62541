@@ -6,14 +6,14 @@
     "configurations": [        
 
         {
-            "name": "Python: generate datatypes",
+            "name": "Python: generate datatypes ns0 full",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/tools/generate_datatypes.py",
             "console": "integratedTerminal",
             "args" : [
-                "--type-bsd", "${workspaceFolder}/examples/nodeset/My.Types.bsd", 
-                "--namespace", "2",    
+                "--type-bsd", "${workspaceFolder}/examples/nodeset/Test.Types.bsd", 
+                "--namespace", "0",    
                 "--no-builtin",
                 "${workspaceFolder}/examples/nodeset/ua_mytypes"],
             "cwd": "${workspaceFolder}",
