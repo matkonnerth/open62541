@@ -12,10 +12,10 @@
             "program": "${workspaceFolder}/tools/generate_datatypes.py",
             "console": "integratedTerminal",
             "args" : [
-                "--type-bsd", "${workspaceFolder}/examples/nodeset/Test.Types.bsd", 
-                "--namespace", "0",    
-                "--no-builtin",
-                "${workspaceFolder}/examples/nodeset/ua_mytypes"],
+                "--type-csv", "${workspaceFolder}/deps/ua-nodeset/Schema/NodeIds.csv",
+                "--type-bsd", "${workspaceFolder}/deps/ua-nodeset/Schema/Opc.Ua.Types.bsd", 
+                "--namespace", "0",
+                "ua_types"],
             "cwd": "${workspaceFolder}",
         },
         {

@@ -24,9 +24,9 @@ int main(int argc, char** argv) {
     signal(SIGTERM, stopHandler);
     
     UA_ServerConfig *config = UA_ServerConfig_new_default();
-    UA_Server *server = UA_Server_new(config);
-
-    //config->
+    UA_DataTypeArray myTypes = { .next = NULL, .typesSize = UA_TYPES_TESTNODESET_COUNT, .types = UA_TYPES_TESTNODESET};
+    config->customDataTypes = &myTypes;
+    UA_Server *server = UA_Server_new(config);    
 
     UA_StatusCode retval;
     /* create nodes from nodeset */
@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
         UA_Server_readValue(server, UA_NODEID_NUMERIC(2,6002), &out);            
         printf("point 3d x: %f y: %f z: %f \n", ((UA_Point3D*)out.data)->x, ((UA_Point3D*)out.data)->y, ((UA_Point3D*)out.data)->z);
 
+        /*
         UA_StructureDefinition structdef;
         structdef.defaultEncodingId = UA_NODEID_NUMERIC(2,3002);
         structdef.baseDataType = UA_NODEID_NUMERIC(0,22);
@@ -57,6 +58,7 @@ int main(int argc, char** argv) {
         fields[0].arrayDimensionsSize = 0;
         fields[0].arrayDimensions = NULL;
         fields[0].isOptional = false;
+        */
         
 
 

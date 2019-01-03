@@ -342,6 +342,42 @@ ReadWithNode(const UA_Node *node, UA_Server *server, UA_Session *session,
                                                       (const UA_MethodNode*)node);
         retval = UA_Variant_setScalarCopy(&v->value, &userExecutable, &UA_TYPES[UA_TYPES_BOOLEAN]);
         break; }
+    case UA_ATTRIBUTEID_DATATYPEDEFINITION:
+        CHECK_NODECLASS(UA_NODECLASS_DATATYPE);
+        const UA_NodeId pointId = UA_NODEID_NUMERIC(2, 10001);
+        if(UA_NodeId_equal(&node->nodeId, &pointId))
+        {
+            //only for demonstrating on Point Datatype
+            UA_StructureDefinition structdef;
+            structdef.defaultEncodingId = UA_NODEID_NUMERIC(2,5002);
+            structdef.baseDataType = UA_NODEID_NUMERIC(0,22);
+            structdef.structureType = UA_STRUCTURETYPE_STRUCTURE;
+            structdef.fieldsSize = 2;
+            UA_StructureField fields[2];
+            fields[0].name = UA_STRING("X");
+            fields[0].description = UA_LOCALIZEDTEXT("de", "X");
+            fields[0].dataType = UA_NODEID_NUMERIC(0, 6);
+            fields[0].valueRank = -1;
+            fields[0].arrayDimensionsSize = 0;
+            fields[0].arrayDimensions = NULL;
+            fields[0].isOptional = false;
+            fields[0].maxStringLength = 255;
+            fields[1].name = UA_STRING("y");
+            fields[1].description = UA_LOCALIZEDTEXT("de", "Y");
+            fields[1].dataType = UA_NODEID_NUMERIC(0, 6);
+            fields[1].valueRank = -1;
+            fields[1].arrayDimensionsSize = 0;
+            fields[1].arrayDimensions = NULL;
+            fields[1].isOptional = false;
+            fields[1].maxStringLength = 255;
+            structdef.fields = fields;
+            retval = UA_Variant_setScalarCopy(&v->value, &structdef, &UA_TYPES[UA_TYPES_STRUCTUREDEFINITION]);
+        }
+        else
+        {       
+            retval = UA_STATUSCODE_BADNOTIMPLEMENTED;
+        }
+        break;
     default:
         retval = UA_STATUSCODE_BADATTRIBUTEIDINVALID;
     }

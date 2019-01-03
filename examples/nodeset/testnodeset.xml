@@ -26,18 +26,23 @@
     <UADataType NodeId="ns=1;i=10001" BrowseName="1:Point">
         <DisplayName>Point</DisplayName>
         <References>
-            <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+            <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>            
         </References>
         <Definition Name="1:Point">
             <Field DataType="Int32" Name="x"/>
             <Field DataType="Int32" Name="y"/>
         </Definition>
     </UADataType>
+    <UAObject SymbolicName="DefaultBinary" NodeId="ns=1;i=5002" BrowseName="Default Binary">
+        <DisplayName>Default Binary</DisplayName>
+        <References>
+            <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=10001</Reference>
+            <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+        </References>
+    </UAObject>
     <UADataType NodeId="ns=1;i=3002" BrowseName="1:Point3D">
         <DisplayName>Point3D</DisplayName>
-        <References>
-            <Reference ReferenceType="HasEncoding">ns=1;i=5002</Reference>
-            <Reference ReferenceType="HasEncoding">ns=1;i=5003</Reference>
+        <References>            
             <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
         </References>
         <Definition Name="1:Point3D">
@@ -140,7 +145,7 @@
         <DisplayName>PointA</DisplayName>
         <References>
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
-            <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>
+            <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5001</Reference>            
         </References>
         <Value>
             <uax:ExtensionObject>
@@ -272,21 +277,7 @@
                 </uax:ExtensionObject>
             </uax:ListOfExtensionObject>
         </Value>
-    </UAVariable>
-    <UAObject SymbolicName="DefaultBinary" NodeId="ns=1;i=5002" BrowseName="Default Binary">
-        <DisplayName>Default Binary</DisplayName>
-        <References>
-            <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3002</Reference>
-            <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
-        </References>
-    </UAObject>
-    <UAObject SymbolicName="DefaultXml" NodeId="ns=1;i=5003" BrowseName="Default XML">
-        <DisplayName>Default XML</DisplayName>
-        <References>
-            <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=3002</Reference>
-            <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
-        </References>
-    </UAObject>
+    </UAVariable>    
     <UAVariable DataType="Double" ParentNodeId="ns=1;i=5100" NodeId="ns=1;i=5101" BrowseName="1:Double" AccessLevel="3">
         <DisplayName>Double</DisplayName>
         <References>
@@ -370,8 +361,6 @@
     <UADataType NodeId="ns=1;i=3003" BrowseName="1:PointWithArray">
         <DisplayName>PointWithArray</DisplayName>
         <References>
-            <Reference ReferenceType="HasEncoding">ns=1;i=5001</Reference>
-            <Reference ReferenceType="HasEncoding">ns=1;i=5002</Reference>
             <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
         </References>
         <Definition Name="1:PointWithArray">
