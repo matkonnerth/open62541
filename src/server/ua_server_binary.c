@@ -435,6 +435,9 @@ processMSG(UA_Server *server, UA_SecureChannel *channel,
     }
     UA_assert(responseType);
 
+    if(requestTypeId.identifier.numeric == 673)
+        UA_LOG_INFO_CHANNEL(&server->config.logger, channel, "write requested");
+
     /* Decode the request */
     UA_STACKARRAY(UA_Byte, request, requestType->memSize);
     UA_RequestHeader *requestHeader = (UA_RequestHeader*)request;

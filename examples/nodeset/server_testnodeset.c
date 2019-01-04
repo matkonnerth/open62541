@@ -24,8 +24,8 @@ int main(int argc, char** argv) {
     signal(SIGTERM, stopHandler);
     
     UA_ServerConfig *config = UA_ServerConfig_new_default();
-    UA_DataTypeArray myTypes = { .next = NULL, .typesSize = UA_TYPES_TESTNODESET_COUNT, .types = UA_TYPES_TESTNODESET};
-    config->customDataTypes = &myTypes;
+    //UA_DataTypeArray myTypes = { .next = NULL, .typesSize = UA_TYPES_TESTNODESET_COUNT, .types = UA_TYPES_TESTNODESET};
+    //config->customDataTypes = &myTypes;
     UA_Server *server = UA_Server_new(config);    
 
     UA_StatusCode retval;
