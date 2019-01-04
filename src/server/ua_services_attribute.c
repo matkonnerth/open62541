@@ -356,7 +356,7 @@ ReadWithNode(const UA_Node *node, UA_Server *server, UA_Session *session,
             UA_StructureField fields[2];
             fields[0].name = UA_STRING("X");
             fields[0].description = UA_LOCALIZEDTEXT("de", "X");
-            fields[0].dataType = UA_NODEID_NUMERIC(0, 6);
+            fields[0].dataType = UA_NODEID_NUMERIC(0, 11);
             fields[0].valueRank = -1;
             fields[0].arrayDimensionsSize = 0;
             fields[0].arrayDimensions = NULL;
@@ -364,7 +364,7 @@ ReadWithNode(const UA_Node *node, UA_Server *server, UA_Session *session,
             fields[0].maxStringLength = 255;
             fields[1].name = UA_STRING("y");
             fields[1].description = UA_LOCALIZEDTEXT("de", "Y");
-            fields[1].dataType = UA_NODEID_NUMERIC(0, 6);
+            fields[1].dataType = UA_NODEID_NUMERIC(0, 11);
             fields[1].valueRank = -1;
             fields[1].arrayDimensionsSize = 0;
             fields[1].arrayDimensions = NULL;

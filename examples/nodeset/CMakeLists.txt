@@ -29,7 +29,7 @@ if(UA_NAMESPACE_ZERO STREQUAL "FULL")
     ua_generate_nodeset_and_datatypes(
         NAME "testnodeset"
         FILE_CSV "${PROJECT_SOURCE_DIR}/examples/nodeset/testnodeset.csv"
-        FILE_BSD "${PROJECT_SOURCE_DIR}/examples/nodeset/Test.Types.bsd"
+        FILE_BSD "${PROJECT_SOURCE_DIR}/examples/nodeset/testtypes.bsd"
         NAMESPACE_IDX 2
         FILE_NS "${PROJECT_SOURCE_DIR}/examples/nodeset/testnodeset.xml"
         INTERNAL

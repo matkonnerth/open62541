@@ -40,28 +40,8 @@ int main(int argc, char** argv) {
         UA_Variant_init(&out);
         UA_Server_readValue(server, UA_NODEID_NUMERIC(2,10002), &out);
         UA_Point* p = (UA_Point*)out.data;      
-        printf("point 2d x: %d y: %d \n", p->x, p->y);       
-
-        UA_Server_readValue(server, UA_NODEID_NUMERIC(2,6002), &out);            
-        printf("point 3d x: %f y: %f z: %f \n", ((UA_Point3D*)out.data)->x, ((UA_Point3D*)out.data)->y, ((UA_Point3D*)out.data)->z);
-
-        /*
-        UA_StructureDefinition structdef;
-        structdef.defaultEncodingId = UA_NODEID_NUMERIC(2,3002);
-        structdef.baseDataType = UA_NODEID_NUMERIC(0,22);
-        structdef.structureType = UA_STRUCTURETYPE_STRUCTURE;
-        UA_StructureField fields[3];
-        fields[0].name = UA_STRING("x");
-        fields[0].description = UA_LOCALIZEDTEXT("de", "x");
-        fields[0].dataType = UA_NODEID_NUMERIC(0, 7);
-        fields[0].valueRank = -1;
-        fields[0].arrayDimensionsSize = 0;
-        fields[0].arrayDimensions = NULL;
-        fields[0].isOptional = false;
-        */
+        printf("point 2d x: %f y: %f \n", p->x, p->y);
         
-
-
         retval = UA_Server_run(server, &running);
     }
 
