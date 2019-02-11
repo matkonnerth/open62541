@@ -24,7 +24,7 @@ static UA_StatusCode requestRunningMethodCallback(UA_Server *server, const UA_No
                                                   const UA_Variant *input, size_t oucall_stopped_to_runningtputSize,
                                                   UA_Variant *output) {
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Request State Running was called");
-    if (call_from_to(STOPPED, RUNNING) == true) {
+    if (request_from_to(STOPPED, RUNNING) == true) {
         return UA_STATUSCODE_GOOD;
     } 
     else 
@@ -38,7 +38,7 @@ static UA_StatusCode requestStoppMethodCallback(UA_Server *server, const UA_Node
                                                   const UA_NodeId *objectId, void *objectContext, size_t inputSize,
                                                   const UA_Variant *input, size_t outputSize, UA_Variant *output) {
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Request State Stopped was called");
-    if (call_from_to(RUNNING, STOPPED) == true) {
+    if (request_from_to(RUNNING, STOPPED) == true) {
         return UA_STATUSCODE_GOOD;
     } else {
         return UA_STATUSCODE_BADSTATENOTACTIVE;

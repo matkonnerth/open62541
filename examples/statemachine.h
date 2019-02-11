@@ -5,6 +5,6 @@ typedef enum { STOPPED = 0, RUNNING = 1, ERROR = 2 } state;
 
 void run(void);
 int getCurrentState(void);
-bool call_from_to(state from, state to);
+bool request_from_to(state from, state to);
 
 #endif

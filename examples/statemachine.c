@@ -4,7 +4,7 @@
 
 
 
-state currentState = STOPPED;
+static state currentState = STOPPED;
 
 typedef state (*transitionHandler)(void);
 
@@ -32,13 +32,13 @@ static state transitionHandler_Running_to_Stopped(void)
     return STOPPED; 
 }
 
-Transition t_stopped_to_running = {false, RUNNING, transitionHandler_Stopped_to_Running, 0};
-Transition t_running_to_stopped = {false, STOPPED, transitionHandler_Running_to_Stopped, 0};
-Transition t_empty = {false, ERROR, 0, 0};
-StateType stateMachine[] = {{&t_stopped_to_running}, {&t_running_to_stopped}, {&t_empty}};
+static Transition t_stopped_to_running = {false, RUNNING, transitionHandler_Stopped_to_Running, 0};
+static Transition t_running_to_stopped = {false, STOPPED, transitionHandler_Running_to_Stopped, 0};
+static Transition t_empty = {false, ERROR, 0, 0};
+static StateType stateMachine[] = {{&t_stopped_to_running}, {&t_running_to_stopped}, {&t_empty}};
 
 
-bool call_from_to(state from, state to)
+bool request_from_to(state from, state to)
 {
     if((currentState!=from))
         return false;
@@ -70,11 +70,14 @@ static void handleState(state s)
         {
             t->execute = false;
             state newState = t->handler();
-            currentState = newState;
-            break;
+            if(currentState!=newState)
+            {
+                currentState = newState;
+                //notify state change in here
+            }
         }
         t = t->next;
-    }    
+    }
 }
 
 void run() { handleState(currentState); }
