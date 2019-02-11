@@ -107,7 +107,7 @@ endif()
 # Feature Examples #
 ####################
 
-add_example(server_mainloop server_mainloop.c)
+add_example(server_mainloop server_mainloop.c statemachine.c)
 
 add_example(server_instantiation server_instantiation.c)
 
