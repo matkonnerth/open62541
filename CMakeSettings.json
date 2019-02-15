@@ -1,0 +1,180 @@
+﻿{
+    "environments": [
+        {
+            "namespace": "engel",
+            "remoteBuildMachineName": "192.168.110.42",
+            "remoteDebugMachineName": "192.168.110.10",
+            "preLaunchScriptName": "copyDbg.sh",
+            "copyCertsScriptName": "copyCerts.sh",
+            "remoteDebugMachineDir": "/var/lib/engel/bin",
+            "remoteDebugExecutable": "open62541",
+            "projectName": "open62541"
+        }
+    ],
+    "configurations": [
+        {
+            "variables": [
+                {
+                    "name": "CMAKE_TOOLCHAIN_FILE",
+                    "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                }
+            ],
+            "name": "Engel-Linux-Debug",
+            "intelliSenseMode": "linux-gcc-x86",
+            "generator": "Unix Makefiles",
+            "remoteMachineName": "${engel.remoteBuildMachineName}",
+            "configurationType": "Debug",
+            "cmakeExecutable": "/usr/bin/cmake",
+            "remoteCMakeListsRoot": "/var/tmp/src/${workspaceHash}/${name}",
+            "buildRoot": "${projectDir}\\bin\\${name}",
+            "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+            "remoteBuildRoot": "/var/tmp/build/${workspaceHash}/build/${name}",
+            "remoteInstallRoot": "/var/tmp/build/${workspaceHash}/install/${name}",
+            "remoteCopySources": true,
+            "remoteCopySourcesOutputVerbosity": "Normal",
+            "remoteCopySourcesConcurrentCopies": "10",
+            "remoteCopySourcesMethod": "rsync",
+            "remoteCopySourcesExclusionList": [
+                ".vs",
+                ".git",
+                ".svn",
+                ".clang-format",
+                "bin",
+                "*.gcno"
+            ],
+            "buildCommandArgs": "-j4",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "linux-x86"
+            ],
+            "remoteCopyBuildOutput": false,
+            "remotePreGenerateCommand": ""
+            //,"remotePostbuildCommand": "cd ${cmake.remoteCMakeListsRoot} && chmod +x ${engel.preLaunchScriptName} && ./${engel.preLaunchScriptName} ${cmake.remoteBuildRoot}/bin ${engel.remoteDebugMachineDir}/${cpp.activeConfiguration} ${engel.remoteDebugMachineName}"
+        },
+        {
+            "variables": [
+                {
+                    "name": "CMAKE_TOOLCHAIN_FILE",
+                    "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                }
+            ],
+            "name": "Engel-Linux-Release",
+            "intelliSenseMode": "linux-gcc-x86",
+            "generator": "Unix Makefiles",
+            "remoteMachineName": "${engel.remoteBuildMachineName}",
+            "configurationType": "RelWithDebInfo",
+            "cmakeExecutable": "/usr/bin/cmake",
+            "remoteCMakeListsRoot": "/var/tmp/src/${workspaceHash}/${name}",
+            "buildRoot": "${projectDir}\\bin\\${name}",
+            "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+            "remoteBuildRoot": "/var/tmp/build/${workspaceHash}/build/${name}",
+            "remoteInstallRoot": "/var/tmp/build/${workspaceHash}/install/${name}",
+            "remoteCopySources": true,
+            "remoteCopySourcesOutputVerbosity": "Normal",
+            "remoteCopySourcesConcurrentCopies": "10",
+            "remoteCopySourcesMethod": "rsync",
+            "remoteCopySourcesExclusionList": [
+                ".vs",
+                ".git",
+                ".svn",
+                "bin"
+            ],
+            "cmakeCommandArgs": "CMAKE_BUILD_TYPE=Release",
+            "buildCommandArgs": "-j4",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "linux-x86"
+            ],
+            "remoteCopyBuildOutput": false,
+            "remotePreGenerateCommand": ""
+        },
+        {
+            "environments": [
+                {
+                    "namespace": "engel",
+                    "remoteBuildMachineName": "localhost"
+                }
+            ],
+            "variables": [
+                {
+                    "name": "CMAKE_TOOLCHAIN_FILE",
+                    "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                }
+            ],
+            "name": "Engel-Linux-Debug-Local",
+            "intelliSenseMode": "linux-gcc-x86",
+            "generator": "Unix Makefiles",
+            "remoteMachineName": "${engel.remoteBuildMachineName}",
+            "configurationType": "Debug",
+            "cmakeExecutable": "/usr/bin",
+            //"remoteCMakeListsRoot": "/var/tmp/src/${workspaceHash}/${name}",
+            "remoteCMakeListsRoot": "/mnt/c/c2k/git/open62541",
+            "buildRoot": "${projectDir}\\bin\\${name}",
+            "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+            "remoteBuildRoot": "/var/tmp/build/${workspaceHash}/build/${name}",
+            "remoteInstallRoot": "/var/tmp/build/${workspaceHash}/install/${name}",
+            "remoteCopySources": false,
+            "remoteCopySourcesOutputVerbosity": "Normal",
+            "remoteCopySourcesConcurrentCopies": "10",
+            "remoteCopySourcesMethod": "sftp",
+            "remoteCopySourcesExclusionList": [
+                ".vs",
+                ".git",
+                ".svn",
+                "bin"
+            ],
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-j$((`nproc`*2))",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "linux-x86"
+            ],
+            "remoteCopyBuildOutput": false,
+            "remotePreGenerateCommand": ""
+        },
+        {
+            "environments": [
+                {
+                    "namespace": "engel",
+                    "remoteBuildMachineName": "localhost"
+                }
+            ],
+            "variables": [
+                {
+                    "name": "CMAKE_TOOLCHAIN_FILE",
+                    "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                }
+            ],
+            "name": "Engel-Linux-Release-Local",
+            "intelliSenseMode": "linux-gcc-x86",
+            "generator": "Unix Makefiles",
+            "remoteMachineName": "${engel.remoteBuildMachineName}",
+            "configurationType": "RelWithDebInfo",
+            "cmakeExecutable": "/usr/bin",
+            //"remoteCMakeListsRoot": "/var/tmp/src/${workspaceHash}/${name}",
+            "remoteCMakeListsRoot": "/mnt/c/c2k/git/open62541",
+            "buildRoot": "${projectDir}\\bin\\${name}",
+            "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+            "remoteBuildRoot": "/var/tmp/build/${workspaceHash}/build/${name}",
+            "remoteInstallRoot": "/var/tmp/build/${workspaceHash}/install/${name}",
+            "remoteCopySources": false,
+            "remoteCopySourcesOutputVerbosity": "Normal",
+            "remoteCopySourcesConcurrentCopies": "10",
+            "remoteCopySourcesMethod": "sftp",
+            "remoteCopySourcesExclusionList": [
+                ".vs",
+                ".git",
+                ".svn",
+                "bin"
+            ],
+            "cmakeCommandArgs": "CMAKE_BUILD_TYPE=Release",
+            "buildCommandArgs": "-j$((`nproc`*2))",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "linux-x86"
+            ],
+            "remoteCopyBuildOutput": false,
+            "remotePreGenerateCommand": ""
+        }
+    ]
+}
