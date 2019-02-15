@@ -1,0 +1,52 @@
+{
+    "version": "0.2.1",
+    "defaults": {},
+    "configurations": [
+        {
+            "type": "cppdbg",
+
+            // -------- adjust this entries ------------------
+            "projectTarget": "server_mainloop (bin\\examples\\server_mainloop)",
+            "name": "server_mainloop Cube X Debug",
+            "args": [
+            ],
+            // -----------------------------------------------
+
+            "cwd": "${engel.remoteDebugMachineDir}",
+            "project": "CMakeLists.txt",
+            "program": "${engel.remoteDebugMachineDir}/${cpp.activeConfiguration}/server_mainloop",
+
+            "MIMode": "gdb",
+            "externalConsole": true,
+            "remoteMachineName": "${engel.remoteDebugMachineName}",
+
+            "pipeTransport": {
+                "pipeProgram": "${debugInfo.shellexecPath}",
+                "pipeArgs": [
+                    "/s",
+                    "${debugInfo.remoteMachineId}",
+                    "/p",
+                    "${debugInfo.parentProcessId}",
+                    "/c",
+                    "${debuggerCommand}",
+                    "--tty=${debugInfo.tty}"
+                ],
+                "debuggerPath": "/usr/bin/gdb"
+
+            },
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "set environment LD_LIBRARY_PATH=${engel.remoteDebugMachineDir}/${cpp.activeConfiguration}/",
+                    "ignoreFailures": false
+                }
+            ],
+            "visualizerFile": "${debugInfo.linuxNatvisPath}",
+            "showDisplayString": true
+        }
+
+    ]
+}
