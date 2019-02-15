@@ -1,0 +1,95 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskName": "copy remote",
+      "taskLabel": "COPY EXECUTABLE AND DEPENDENCIES",
+      "appliesTo": "/CMakeLists.txt",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "${cmake.remoteCMakeListsRoot}",
+      "command": "chmod +x ${engel.preLaunchScriptName} && ./${engel.preLaunchScriptName} ${cmake.remoteBuildRoot}/ ${engel.remoteDebugMachineDir}/${cpp.activeConfiguration} ${engel.remoteDebugMachineName}"
+    },
+    {
+      "taskName": "copy remote",
+      "taskLabel": "COPY EXECUTABLE AND DEPENDENCIES",
+      "appliesTo": "/trunk/CMakeLists.txt",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "${cmake.remoteCMakeListsRoot}",
+      "command": "chmod +x ${engel.preLaunchScriptName} && ./${engel.preLaunchScriptName} ${cmake.remoteBuildRoot}/ ${engel.remoteDebugMachineDir}/${cpp.activeConfiguration} ${engel.remoteDebugMachineName}"
+    },
+    {
+      "taskName": "copy remote",
+      "taskLabel": "COPY UNIT TEST AND DEPENDENCIES",
+      "appliesTo": "/test_package/CMakeLists.txt",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "${cmake.remoteCMakeListsRoot}",
+      "command": "chmod +x ${engel.preLaunchScriptName} && ./${engel.preLaunchScriptName} ${cmake.remoteBuildRoot}/test_package/ ${engel.remoteDebugMachineDir}/${cpp.activeConfiguration} ${engel.remoteDebugMachineName}"
+    },
+    {
+      "taskName": "copy remote",
+      "taskLabel": "COPY UNIT TEST AND DEPENDENCIES",
+      "appliesTo": "/trunk/test_package/CMakeLists.txt",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "${cmake.remoteCMakeListsRoot}",
+      "command": "chmod +x ${engel.preLaunchScriptName} && ./${engel.preLaunchScriptName} ${cmake.remoteBuildRoot}/test_package/ ${engel.remoteDebugMachineDir}/${cpp.activeConfiguration} ${engel.remoteDebugMachineName}"
+    },
+    {
+      "taskName": "deleteBuildFolder",
+      "taskLabel": "DELETE BUILD FOLDER",
+      "appliesTo": "*",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "/home",
+      "command": "echo deleting ${cmake.remoteBuildRoot} && rm -r -f ${cmake.remoteBuildRoot} && \necho done!"
+    },
+    {
+      "taskName": "clean conan cache",
+      "taskLabel": "CLEAN CONAN CACHE",
+      "appliesTo": "*",
+      "type": "remote",
+      "remoteMachineName": "192.168.110.42", //can't use ${engel.remoteBuildMachineName} here, edit manually!
+      "remoteWorkingDirectory": "/home",
+      "command": "conan remove -f '*'"
+    },
+    {
+      "taskName": "echo",
+      "taskLabel": "ECHO",
+      "appliesTo": "*",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "/home",
+      "command": "echo ${engel.remoteDebugMachineDir}/${cpp.activeConfiguration}/${engel.remoteDebugExecutable}"
+    },
+    {
+      "taskName": "conan_create_package_local",
+      "taskLabel": "CONAN CREATE PACKAGE (LOCAL)",
+      "appliesTo": "conanfile.*",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "${cmake.remoteCMakeListsRoot}",
+      "command": "conan export-pkg --force . ${engel.packageName}/99.99.99@engel/testing --build-folder=${cmake.remoteBuildRoot}"
+    },
+    {
+      "taskName": "conan_remove_package_local",
+      "taskLabel": "CONAN REMOVE PACKAGE (LOCAL)",
+      "appliesTo": "conanfile.*",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "${cmake.remoteCMakeListsRoot}",
+      "command": "conan remove --force ${engel.packageName}/99.99.99@engel/testing"
+    },
+    {
+      "taskName": "copy certs",
+      "taskLabel": "COPY CERTIFICATES",
+      "appliesTo": "/trunk/CMakeLists.txt",
+      "type": "remote",
+      "remoteMachineName": "${engel.remoteBuildMachineName}",
+      "remoteWorkingDirectory": "${cmake.remoteCMakeListsRoot}",
+      "command": "chmod +x ${engel.copyCertsScriptName} && ./${engel.copyCertsScriptName} ${cmake.remoteCMakeListsRoot}/resources ${engel.remoteDebugMachineName}"
+    }
+  ]
+}

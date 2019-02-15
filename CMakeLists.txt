@@ -281,7 +281,7 @@ option(UA_DEBUG_DUMP_PKGS "Dump every package received by the server as hexdump 
 mark_as_advanced(UA_DEBUG_DUMP_PKGS)
 
 # Build Targets
-option(UA_BUILD_EXAMPLES "Build example servers and clients" OFF)
+option(UA_BUILD_EXAMPLES "Build example servers and clients" ON)
 option(UA_BUILD_TOOLS "Build OPC UA shell tools" OFF)
 option(UA_BUILD_UNIT_TESTS "Build the unit tests" OFF)
 option(UA_BUILD_FUZZING "Build the fuzzing executables" OFF)
@@ -1140,7 +1140,14 @@ set(UA_install_tools_files "tools/generate_datatypes.py"
     "tools/generate_nodeid_header.py"
     "tools/generate_statuscode_descriptions.py")
 
-install(DIRECTORY ${UA_install_tools_dirs} DESTINATION ${open62541_install_tools_dir} USE_SOURCE_PERMISSIONS)
+install(DIRECTORY ${UA_install_tools_dirs} 
+    DESTINATION ${open62541_install_tools_dir} 
+    USE_SOURCE_PERMISSIONS
+    FILES_MATCHING
+    PATTERN "*"
+    PATTERN "*.pyc" EXCLUDE
+    )
+
 install(FILES ${UA_install_tools_files} DESTINATION ${open62541_install_tools_dir})
 
 if(NOT UA_ENABLE_AMALGAMATION)
