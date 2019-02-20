@@ -12,6 +12,14 @@
 
 #include "statemachine.h"
 
+#include "pthread.h"
+
+// Declaration of thread condition variable
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t mutex;
+int sharedRessource = 0;
+bool bufferEmpty = true;
+
 UA_Boolean running = true;
 static void stopHandler(int sign) {
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "received ctrl-c");
@@ -21,8 +29,7 @@ static void stopHandler(int sign) {
 static UA_StatusCode requestRunningMethodCallback(UA_Server *server, const UA_NodeId *sessionId, void *sessionHandle,
                                                   const UA_NodeId *methodId, void *methodContext,
                                                   const UA_NodeId *objectId, void *objectContext, size_t inputSize,
-                                                  const UA_Variant *input, size_t oucall_stopped_to_runningtputSize,
-                                                  UA_Variant *output) {
+                                                  const UA_Variant *input, size_t outputSize, UA_Variant *output) {
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Request State Running was called");
     if (request_from_to(STOPPED, RUNNING) == true) {
         return UA_STATUSCODE_GOOD;
@@ -31,6 +38,57 @@ static UA_StatusCode requestRunningMethodCallback(UA_Server *server, const UA_No
     {
         return UA_STATUSCODE_BADSTATENOTACTIVE;
     }
+}
+
+static void enqueue(int input) 
+{ 
+    pthread_mutex_lock(&mutex);
+    sharedRessource = input;
+    pthread_mutex_unlock(&mutex);
+}
+
+static int dequeue(void)
+{
+    pthread_mutex_lock(&mutex);
+    while(bufferEmpty)
+    {
+        pthread_cond_wait(&cond, &mutex);
+    }
+    int response = sharedRessource;
+    sharedRessource = 0;
+    pthread_mutex_unlock(&mutex);
+    return response;
+}
+
+static void* serveRequest(void * arg)
+{
+    while(true)
+    {
+        pthread_mutex_lock(&mutex);
+        if(sharedRessource!=0)
+        {
+            sharedRessource += 100;
+            bufferEmpty = false;
+            pthread_cond_signal(&cond);
+        }
+        pthread_mutex_unlock(&mutex);
+        usleep(100000);        
+    }
+    return 0;
+}
+
+static UA_StatusCode requestAsyncCallback(UA_Server *server, const UA_NodeId *sessionId, void *sessionHandle,
+                                          const UA_NodeId *methodId, void *methodContext, const UA_NodeId *objectId,
+                                          void *objectContext, size_t inputSize, const UA_Variant *input,
+                                          size_t outputSize, UA_Variant *output) {
+    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Request State Running was called");
+
+
+    //put it in queue
+    enqueue(*((int *)input->data));
+    int response = dequeue();
+    UA_Variant_setScalarCopy(output, &response, &UA_TYPES[UA_TYPES_INT32]);
+    return UA_STATUSCODE_GOOD;
 }
 
 static UA_StatusCode requestStoppMethodCallback(UA_Server *server, const UA_NodeId *sessionId, void *sessionHandle,
@@ -85,6 +143,33 @@ static void addRequestStoppMethodNode(UA_Server *server) {
                             helloAttr, &requestStoppMethodCallback, 0, NULL, 0, NULL, NULL, NULL);
 }
 
+static void addAsyncRequestMethodNode(UA_Server *server) {
+
+    UA_MethodAttributes helloAttr = UA_MethodAttributes_default;
+    helloAttr.description = UA_LOCALIZEDTEXT("en-US", "async request");
+    helloAttr.displayName = UA_LOCALIZEDTEXT("en-US", "async request");
+    helloAttr.executable = true;
+    helloAttr.userExecutable = true;
+
+    UA_Argument inputArgument;
+    UA_Argument_init(&inputArgument);
+    inputArgument.description = UA_LOCALIZEDTEXT("en-US", "operand a");
+    inputArgument.name = UA_STRING("operand a");
+    inputArgument.dataType = UA_TYPES[UA_TYPES_INT32].typeId;
+    inputArgument.valueRank = UA_VALUERANK_SCALAR;
+
+    UA_Argument outputArgument;
+    UA_Argument_init(&outputArgument);
+    inputArgument.description = UA_LOCALIZEDTEXT("en-US", "output");
+    inputArgument.name = UA_STRING("output");
+    inputArgument.dataType = UA_TYPES[UA_TYPES_INT32].typeId;
+    inputArgument.valueRank = UA_VALUERANK_SCALAR;
+
+    UA_Server_addMethodNode(server, UA_NODEID_NUMERIC(1, 7000), UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+                            UA_NODEID_NUMERIC(0, UA_NS0ID_HASORDEREDCOMPONENT), UA_QUALIFIEDNAME(1, "async request"),
+                            helloAttr, &requestAsyncCallback, 1, &inputArgument, 1, &outputArgument, NULL, NULL);
+}
+
 static void addCurrentStateVariable(UA_Server *server) {
     UA_VariableAttributes attr = UA_VariableAttributes_default;
     attr.displayName = UA_LOCALIZEDTEXT("en-US", "current state");
@@ -117,9 +202,25 @@ int main(int argc, char** argv) {
        arrives or should it return immediately? */
     UA_Boolean waitInternal = false;
 
+    //setup mutex
+    pthread_mutexattr_t mutex_attr;
+    pthread_mutexattr_init(&(mutex_attr));
+    pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&mutex, &mutex_attr);
+
+    //start pthread
+    pthread_t producer;
+
+    if(pthread_create(&producer, NULL, serveRequest, NULL))
+    {
+        UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "error creating producer thread");
+        return -1;
+    }
+
     addRequestRunningMethodNode(server);
     addRequestStoppMethodNode(server);
     addCurrentStateVariable(server);
+    addAsyncRequestMethodNode(server);
 
     UA_StatusCode retval = UA_Server_run_startup(server);
     if(retval != UA_STATUSCODE_GOOD)
