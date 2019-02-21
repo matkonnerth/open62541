@@ -117,12 +117,8 @@ UA_PubSubChannelUDPMC_open(const UA_PubSubConnectionConfig *connectionConfig) {
         struct in_addr imr_interface;
         UA_inet_pton(AF_INET, addressAsChar, &imr_interface);
         if((UA_ntohl(imr_interface.s_addr) & 0xF0000000) != 0xE0000000){
-            UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
-                         "PubSub Connection creation failed. No multicast address.");
-            UA_freeaddrinfo(requestResult);
-            UA_free(channelDataUDPMC);
-            UA_free(newChannel);
-            return NULL;
+            UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                           "PubSub Connection creation failed. No multicast address.");
         }
     } else {
         //TODO check if ipv6 addrr is multicast address.
@@ -266,7 +262,8 @@ UA_PubSubChannelUDPMC_open(const UA_PubSubConnectionConfig *connectionConfig) {
  * @return UA_STATUSCODE_GOOD on success
  */
 static UA_StatusCode
-UA_PubSubChannelUDPMC_regist(UA_PubSubChannel *channel, UA_ExtensionObject *transportSettings) {
+UA_PubSubChannelUDPMC_regist(UA_PubSubChannel *channel, UA_ExtensionObject *transportSettings,
+        void (*notUsedHere)(UA_ByteString *encodedBuffer, UA_ByteString *topic)) {
     if(!(channel->state == UA_PUBSUB_CHANNEL_PUB || channel->state == UA_PUBSUB_CHANNEL_RDY)){
         UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "PubSub Connection regist failed.");
         return UA_STATUSCODE_BADINTERNALERROR;
@@ -285,9 +282,9 @@ UA_PubSubChannelUDPMC_regist(UA_PubSubChannel *channel, UA_ExtensionObject *tran
         groupV4.imr_interface.s_addr = UA_htonl(INADDR_ANY);
         //multihomed hosts can join several groups on different IF, INADDR_ANY -> kernel decides
 
-        if(UA_setsockopt(channel->sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &groupV4, sizeof(groupV4)) != 0){
-            UA_LOG_ERROR(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "PubSub Connection regist failed.");
-            return UA_STATUSCODE_BADINTERNALERROR;
+        if(UA_setsockopt(channel->sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &groupV4, sizeof(groupV4)) != 0) {
+            UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                           "PubSub Connection not on multicast");
         }
 #if UA_IPV6
     } else if (connectionConfig->ai_family == PF_INET6) {//IPv6 handling

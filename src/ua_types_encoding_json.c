@@ -145,14 +145,9 @@ writeJsonArrElm(CtxJson *ctx, const void *value,
     return ret;
 }
 
-status writeJsonObjElm(CtxJson *ctx, UA_String *key,
+status writeJsonObjElm(CtxJson *ctx, const char *key,
                        const void *value, const UA_DataType *type){
-    UA_STACKARRAY(char, out, key->length + 1);
-    memcpy(out, key->data, key->length);
-    out[key->length] = 0;
-    status ret = writeJsonKey(ctx, out);
-    ret |= encodeJsonInternal(value, type, ctx);
-    return ret;
+    return writeJsonKey(ctx, key) | encodeJsonInternal(value, type, ctx);
 }
 
 status writeJsonNull(CtxJson *ctx) {
@@ -1454,7 +1449,7 @@ const encodeJsonSignature encodeJsonJumpTable[UA_DATATYPEKINDS] = {
     (encodeJsonSignature)Variant_encodeJson,
     (encodeJsonSignature)DiagnosticInfo_encodeJson,
     (encodeJsonSignature)encodeJsonNotImplemented, /* Decimal */
-    (encodeJsonSignature)encodeJsonNotImplemented, /* Enum */
+    (encodeJsonSignature)Int32_encodeJson, /* Enum */
     (encodeJsonSignature)encodeJsonStructure,
     (encodeJsonSignature)encodeJsonNotImplemented, /* Structure with optional fields */
     (encodeJsonSignature)encodeJsonNotImplemented, /* Union */
@@ -2725,12 +2720,12 @@ DECODE_JSON(Variant) {
     
     /* Get the datatype of the content. The type must be a builtin data type.
     * All not-builtin types are wrapped in an ExtensionObject. */
-    if(bodyType->typeIndex > UA_TYPES_DIAGNOSTICINFO)
+    if(bodyType->typeKind > UA_TYPES_DIAGNOSTICINFO)
         return UA_STATUSCODE_BADDECODINGERROR;
 
     /* A variant cannot contain a variant. But it can contain an array of
         * variants */
-    if(bodyType->typeIndex == UA_TYPES_VARIANT && !isArray)
+    if(bodyType->typeKind == UA_DATATYPEKIND_VARIANT && !isArray)
         return UA_STATUSCODE_BADDECODINGERROR;
     
     if(isArray) {
@@ -2745,7 +2740,7 @@ DECODE_JSON(Variant) {
         } else {
             ret = decodeFields(ctx, parseCtx, entries, 3, bodyType); /*use all fields*/
         }      
-    } else if(bodyType->typeIndex != UA_TYPES_EXTENSIONOBJECT) {
+    } else if(bodyType->typeKind != UA_DATATYPEKIND_EXTENSIONOBJECT) {
         /* Allocate Memory for Body */
         if(!isBodyNull) {
             dst->data = UA_new(bodyType);
@@ -3277,7 +3272,7 @@ const decodeJsonSignature decodeJsonJumpTable[UA_DATATYPEKINDS] = {
     (decodeJsonSignature)Variant_decodeJson,
     (decodeJsonSignature)DiagnosticInfo_decodeJson,
     (decodeJsonSignature)decodeJsonNotImplemented, /* Decimal */
-    (decodeJsonSignature)decodeJsonNotImplemented, /* Enum */
+    (decodeJsonSignature)Int32_decodeJson, /* Enum */
     (decodeJsonSignature)decodeJsonStructure,
     (decodeJsonSignature)decodeJsonNotImplemented, /* Structure with optional fields */
     (decodeJsonSignature)decodeJsonNotImplemented, /* Union */
