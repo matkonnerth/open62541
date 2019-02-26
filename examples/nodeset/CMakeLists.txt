@@ -123,7 +123,7 @@ if(UA_NAMESPACE_ZERO STREQUAL "FULL")
         FILE_NS "${PROJECT_SOURCE_DIR}/examples/nodeset/em79/euromap79.xml"
         INTERNAL
     )
-    add_example(server_em79 server_em79.c 
+    add_example(server_em79 em79/server_em79.c 
         ${PROJECT_BINARY_DIR}/src_generated/ua_namespace_em79.c
         ${PROJECT_BINARY_DIR}/src_generated/ua_types_em79_generated.c)
     add_dependencies(server_em79 open62541-generator-ns-em79)
