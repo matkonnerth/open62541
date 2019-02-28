@@ -78,6 +78,8 @@ subscriptionPollingCallback(UA_Server *server, UA_PubSubConnection *connection) 
 
     /* Loop over the fields and print well-known content types */
     for(int i = 0; i < dsm->data.keyFrameData.fieldCount; i++) {
+       // printf("%.*s",(int)dsm->data.keyFrameData.fieldNames[i].length,dsm->data.keyFrameData.fieldNames[i].data);
+        //fwrite(dsm->data.keyFrameData.fieldNames[i].data,1,dsm->data.keyFrameData.fieldNames[i].length,stdout);
         const UA_DataType *currentType = dsm->data.keyFrameData.dataSetFields[i].value.type;
         if(currentType == &UA_TYPES[UA_TYPES_BYTE]) {
             UA_Byte value = *(UA_Byte *)dsm->data.keyFrameData.dataSetFields[i].value.data;
@@ -91,6 +93,15 @@ subscriptionPollingCallback(UA_Server *server, UA_PubSubConnection *connection) 
                         "Received date: %02i-%02i-%02i Received time: %02i:%02i:%02i",
                         receivedTime.year, receivedTime.month, receivedTime.day,
                         receivedTime.hour, receivedTime.min, receivedTime.sec);
+
+        } else if (currentType == &UA_TYPES[UA_TYPES_FLOAT]) {
+            UA_Float value = *(UA_Float *)dsm->data.keyFrameData.dataSetFields[i].value.data;
+            //fwrite(buf,1,len,stdout);
+            UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                        "Message content: [Some position] \t"
+                        "Received date: %f",
+                        value);
+        
         }
     }
 

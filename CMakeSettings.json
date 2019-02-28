@@ -2,8 +2,8 @@
     "environments": [
         {
             "namespace": "engel",
-            "remoteBuildMachineName": "192.168.110.42",
-            "remoteDebugMachineName": "192.168.110.10",
+            "remoteBuildMachineName": "localhost",
+            "remoteDebugMachineName": "localhost",
             "preLaunchScriptName": "copyDbg.sh",
             "copyCertsScriptName": "copyCerts.sh",
             "remoteDebugMachineDir": "/var/lib/engel/bin",
