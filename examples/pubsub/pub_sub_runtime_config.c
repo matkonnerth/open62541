@@ -32,6 +32,8 @@
 
 #include <signal.h>
 
+#include <ua_client_highlevel.h>
+
 UA_Float actPos = 100.0;
 
 UA_UInt32 idCount = 4000;
@@ -207,21 +209,8 @@ helloWorldMethodCallback(UA_Server *server,
                          size_t inputSize, const UA_Variant *input,
                          size_t outputSize, UA_Variant *output) {
 
-
-    //addDataSetFieldMouldPos(server);
     UA_NodeId *id = (UA_NodeId*)input->data; 
     addDataSetFieldVariable(server, *id);
-/*A_String *inputStr = (UA_String*)input->data;
-    UA_String tmp = UA_STRING_ALLOC("Hello ");
-    if(inputStr->length > 0) {
-        tmp.data = (UA_Byte *)UA_realloc(tmp.data, tmp.length + inputStr->length);
-        memcpy(&tmp.data[tmp.length], inputStr->data, inputStr->length);
-        tmp.length += inputStr->length;
-    }
-    UA_Variant_setScalarCopy(output, &tmp, &UA_TYPES[UA_TYPES_STRING]);
-    UA_String_clear(&tmp);
-    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Hello World was called");
-    */
     return UA_STATUSCODE_GOOD;
 }
 
@@ -261,18 +250,6 @@ addFloatVariableMethodCallback(UA_Server *server,
     char* name = (char*)calloc(inputStr->length+1, sizeof(char));
     memcpy(name, inputStr->data, inputStr->length);
     addFloatVariable(server, name);
-
-/*A_String *inputStr = (UA_String*)input->data;
-    UA_String tmp = UA_STRING_ALLOC("Hello ");
-    if(inputStr->length > 0) {
-        tmp.data = (UA_Byte *)UA_realloc(tmp.data, tmp.length + inputStr->length);
-        memcpy(&tmp.data[tmp.length], inputStr->data, inputStr->length);
-        tmp.length += inputStr->length;
-    }
-    UA_Variant_setScalarCopy(output, &tmp, &UA_TYPES[UA_TYPES_STRING]);
-    UA_String_clear(&tmp);
-    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "Hello World was called");
-    */
     return UA_STATUSCODE_GOOD;
 }
 
@@ -340,6 +317,61 @@ addCurrentMouldPosition(UA_Server *server) {
                                         timeDataSource, NULL, NULL);
 }
 
+static void addVariable(UA_Server *server) {
+    /* Define the attribute of the myInteger variable node */
+    UA_VariableAttributes attr = UA_VariableAttributes_default;
+
+
+
+    UA_Variant var;
+    var.storageType = UA_VARIANT_DATA;
+    var.type = &UA_TYPES[UA_TYPES_FLOAT];
+    var.data = NULL;
+    var.arrayLength = 0;
+    var.arrayDimensionsSize = 0;
+    var.arrayDimensions = NULL;
+
+    UA_PublishedVariableDataType pubVar[] = {{UA_NODEID_NUMERIC(1, 4000), (UA_UInt32)13, 0.0, 0u,  0.0,
+                                             UA_STRING("test"), var, 0, NULL},
+                                 {UA_NODEID_NUMERIC(1, 4000), (UA_UInt32)14, 0.0, 0u, 0.0,
+                                  UA_STRING("test"), var, 0, NULL}};
+    UA_Variant_setArray(&attr.value, &pubVar, 2, &UA_TYPES[UA_TYPES_PUBLISHEDVARIABLEDATATYPE]);
+    //UA_Variant_setScalar(&attr.value, &pubVar, &UA_TYPES[UA_TYPES_PUBLISHEDVARIABLEDATATYPE]);
+    attr.description = UA_LOCALIZEDTEXT("en-US", "demo publishedData");
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "demo publishedData");
+    attr.dataType = UA_TYPES[UA_TYPES_PUBLISHEDVARIABLEDATATYPE].typeId;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+
+    /* Add the variable node to the information model */
+    UA_NodeId myIntegerNodeId = UA_NODEID_NUMERIC(1, 8000);
+    UA_QualifiedName myIntegerName = UA_QUALIFIEDNAME(1, "publishedVariabled");
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    UA_Server_addVariableNode(server, myIntegerNodeId, parentNodeId, parentReferenceNodeId, myIntegerName,
+                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, NULL, NULL);
+}
+
+static void addFloatArrayVariable(UA_Server *server) {
+    /* Define the attribute of the myInteger variable node */
+    UA_VariableAttributes attr = UA_VariableAttributes_default;
+
+    UA_Float var[] = {1.1f, 2.2f};
+    UA_Variant_setArray(&attr.value, &var, 2, &UA_TYPES[UA_TYPES_FLOAT]);
+    // UA_Variant_setScalar(&attr.value, &pubVar, &UA_TYPES[UA_TYPES_PUBLISHEDVARIABLEDATATYPE]);
+    attr.description = UA_LOCALIZEDTEXT("en-US", "demo publishedData");
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "demo publishedData");
+    attr.dataType = UA_TYPES[UA_TYPES_FLOAT].typeId;
+    attr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+
+    /* Add the variable node to the information model */
+    UA_NodeId myIntegerNodeId = UA_NODEID_NUMERIC(1, 8001);
+    UA_QualifiedName myIntegerName = UA_QUALIFIEDNAME(1, "float array");
+    UA_NodeId parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
+    UA_NodeId parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    UA_Server_addVariableNode(server, myIntegerNodeId, parentNodeId, parentReferenceNodeId, myIntegerName,
+                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, NULL, NULL);
+}
+
 static int run(UA_String *transportProfile,
                UA_NetworkAddressUrlDataType *networkAddressUrl) {
     signal(SIGINT, stopHandler);
@@ -371,8 +403,35 @@ static int run(UA_String *transportProfile,
     addDataSetField(server);
     addWriterGroup(server);
     addDataSetWriter(server);
-
     addDataSetFielddMethod(server);
+
+    addVariable(server);
+    addFloatArrayVariable(server);
+
+    //get published dataset
+    printf("Published dataset NodeId demo pds: %u %u\n", publishedDataSetIdent.namespaceIndex, publishedDataSetIdent.identifier.numeric);
+    //get node Id of publishedData
+    UA_RelativePathElement rel = {UA_NODEID_NUMERIC(0, UA_NS0ID_HIERARCHICALREFERENCES), UA_FALSE, UA_TRUE,
+                                  UA_QUALIFIEDNAME(0, "PublishedData")};
+
+    UA_BrowsePath bp;
+    bp.startingNode = publishedDataSetIdent;
+    bp.relativePath.elementsSize = 1;
+    bp.relativePath.elements = &rel;
+
+    UA_BrowsePathResult res = UA_Server_translateBrowsePathToNodeIds(server, &bp);
+    UA_NodeId publishedDataId;
+    if (res.statusCode == UA_STATUSCODE_GOOD) {
+        publishedDataId = res.targets[0].targetId.nodeId;
+        printf("Published data id : %u %u\n", publishedDataId.namespaceIndex, publishedDataId.identifier.numeric);
+
+        UA_Variant out;
+        UA_Variant_init(&out);
+        if (UA_Server_readValue(server, publishedDataId, &out) == UA_STATUSCODE_GOOD) {
+            UA_PublishedVariableDataType *p = (UA_PublishedVariableDataType *)out.data;
+            printf("attributeid: %u \n", p->attributeId);
+        }
+    }  
 
     retval |= UA_Server_run(server, &running);
     UA_Server_delete(server);
