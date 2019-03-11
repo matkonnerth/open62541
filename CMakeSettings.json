@@ -3,7 +3,7 @@
         {
             "namespace": "engel",
             "remoteBuildMachineName": "localhost",
-            "remoteDebugMachineName": "localhost",
+            "remoteDebugMachineName": "192.168.110.10",
             "preLaunchScriptName": "copyDbg.sh",
             "copyCertsScriptName": "copyCerts.sh",
             "remoteDebugMachineDir": "/var/lib/engel/bin",
@@ -17,6 +17,10 @@
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
                     "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                },
+                {
+                    "name": "UA_ENABLE_PUBSUB",
+                    "value": "1"
                 }
             ],
             "name": "Engel-Linux-Debug",
@@ -56,6 +60,10 @@
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
                     "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                },
+                {
+                    "name": "UA_ENABLE_PUBSUB",
+                    "value": "1"
                 }
             ],
             "name": "Engel-Linux-Release",
@@ -99,6 +107,10 @@
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
                     "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                },
+                {
+                    "name": "UA_ENABLE_PUBSUB",
+                    "value": "1"
                 }
             ],
             "name": "Engel-Linux-Debug-Local",
@@ -108,7 +120,7 @@
             "configurationType": "Debug",
             "cmakeExecutable": "/usr/bin",
             //"remoteCMakeListsRoot": "/var/tmp/src/${workspaceHash}/${name}",
-            "remoteCMakeListsRoot": "/mnt/c/c2k/git/open62541",
+            "remoteCMakeListsRoot": "/mnt/c/Work/BA-Test/git/open62541",
             "buildRoot": "${projectDir}\\bin\\${name}",
             "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
             "remoteBuildRoot": "/var/tmp/build/${workspaceHash}/build/${name}",
@@ -143,6 +155,10 @@
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
                     "value": "/opt/x-tools/i686-cube442-linux-gnu/toolchain.cmake"
+                },
+                {
+                    "name": "UA_ENABLE_PUBSUB",
+                    "value": "1"
                 }
             ],
             "name": "Engel-Linux-Release-Local",
@@ -152,7 +168,7 @@
             "configurationType": "RelWithDebInfo",
             "cmakeExecutable": "/usr/bin",
             //"remoteCMakeListsRoot": "/var/tmp/src/${workspaceHash}/${name}",
-            "remoteCMakeListsRoot": "/mnt/c/c2k/git/open62541",
+            "remoteCMakeListsRoot": "/mnt/c/Work/BA-Test/git/open62541",
             "buildRoot": "${projectDir}\\bin\\${name}",
             "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
             "remoteBuildRoot": "/var/tmp/build/${workspaceHash}/build/${name}",

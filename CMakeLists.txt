@@ -151,7 +151,7 @@ option(UA_ENABLE_ENCRYPTION "Enable encryption support (uses mbedTLS)" OFF)
 option(BUILD_SHARED_LIBS "Enable building of shared libraries (dll/so)" OFF)
 
 # Namespace Zero
-set(UA_NAMESPACE_ZERO "REDUCED" CACHE STRING "Completeness of the generated namespace zero (minimal/reduced/full)")
+set(UA_NAMESPACE_ZERO "FULL" CACHE STRING "Completeness of the generated namespace zero (minimal/reduced/full)")
 SET_PROPERTY(CACHE UA_NAMESPACE_ZERO PROPERTY STRINGS "MINIMAL" "REDUCED" "FULL")
 if(UA_NAMESPACE_ZERO STREQUAL "MINIMAL")
     set(UA_GENERATED_NAMESPACE_ZERO OFF)
@@ -199,7 +199,7 @@ if(UA_ENABLE_MULTITHREADING)
     set(UA_ENABLE_IMMUTABLE_NODES ON)
 endif()
 
-option(UA_ENABLE_PUBSUB "Enable publish/subscribe" OFF)
+option(UA_ENABLE_PUBSUB "Enable publish/subscribe" ON)
 mark_as_advanced(UA_ENABLE_PUBSUB)
 
 option(UA_ENABLE_DA "Enable data access" ON)
@@ -216,9 +216,9 @@ endif()
 option(UA_ENABLE_PUBSUB_DELTAFRAMES "Enable sending of delta frames with only the changes" OFF)
 mark_as_advanced(UA_ENABLE_PUBSUB_DELTAFRAMES)
 
-option(UA_ENABLE_PUBSUB_INFORMATIONMODEL "Enable PubSub information model twin" OFF)
+option(UA_ENABLE_PUBSUB_INFORMATIONMODEL "Enable PubSub information model twin" ON)
 mark_as_advanced(UA_ENABLE_PUBSUB_INFORMATIONMODEL)
-option(UA_ENABLE_PUBSUB_INFORMATIONMODEL_METHODS "Enable PubSub informationmodel methods" OFF)
+option(UA_ENABLE_PUBSUB_INFORMATIONMODEL_METHODS "Enable PubSub informationmodel methods" ON)
 mark_as_advanced(UA_ENABLE_PUBSUB_INFORMATIONMODEL_METHODS)
 if(UA_ENABLE_PUBSUB_INFORMATIONMODEL_METHODS)
     if(NOT UA_ENABLE_PUBSUB_INFORMATIONMODEL)
@@ -380,7 +380,7 @@ endif()
 if(NOT UA_COMPILE_AS_CXX AND (CMAKE_COMPILER_IS_GNUCC OR "x${CMAKE_C_COMPILER_ID}" STREQUAL "xClang"))
     # Compiler
     add_definitions(-std=c99 -pipe
-                    -Wall -Wextra -Werror -Wpedantic
+                    -Wall -Wextra -Werror -Wpedantic    # updated -Werror deleted
                     -Wno-static-in-inline # clang doesn't like the use of static inline methods inside static inline methods
                     -Wno-overlength-strings # may happen in the nodeset compiler when complex values are directly encoded
                     -Wno-unused-parameter # some methods may require unused arguments to cast to a method pointer

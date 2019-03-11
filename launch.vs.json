@@ -6,15 +6,15 @@
             "type": "cppdbg",
 
             // -------- adjust this entries ------------------
-            "projectTarget": "server_mainloop (bin\\examples\\server_mainloop)",
-            "name": "server_mainloop Cube X Debug",
+            "projectTarget": "pub_sub_runtime_subscriber (bin\\examples\\pub_sub_runtime_subscriber)",
+            "name": "pub_sub_runtime_subscriber Cube X Debug",
             "args": [
             ],
             // -----------------------------------------------
 
             "cwd": "${engel.remoteDebugMachineDir}",
             "project": "CMakeLists.txt",
-            "program": "${engel.remoteDebugMachineDir}/${cpp.activeConfiguration}/server_mainloop",
+            "program": "${engel.remoteDebugMachineDir}/${cpp.activeConfiguration}/examples/pub_sub_runtime_subscriber",
 
             "MIMode": "gdb",
             "externalConsole": true,
