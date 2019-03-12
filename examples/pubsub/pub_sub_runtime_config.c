@@ -519,7 +519,7 @@ static void usage(char *progname) { printf("usage: %s <uri> [device]\n", prognam
 
 int main(int argc, char **argv) {
     UA_String transportProfile = UA_STRING("http://opcfoundation.org/UA-Profile/Transport/pubsub-udp-uadp");
-    UA_NetworkAddressUrlDataType networkAddressUrl = {UA_STRING_NULL, UA_STRING("opc.udp://224.0.0.22:4840/")};
+    UA_NetworkAddressUrlDataType networkAddressUrl = {UA_STRING("192.168.120.2"), UA_STRING("opc.udp://224.0.0.1:4840/")}; //interface normal UA_STRING_NULL internal
 
     if (argc > 1) {
         if (strcmp(argv[1], "-h") == 0) {
