@@ -129,6 +129,41 @@ if(UA_NAMESPACE_ZERO STREQUAL "FULL")
                 ${UA_TYPES_DI_SOURCES}
                 ${UA_TYPES_POWERLINK_SOURCES})
     add_dependencies(server_nodeset_powerlink open62541-generator-ns-powerlink)
+
+
+     set(FILE_EM77_PREFIX ${CMAKE_SOURCE_DIR}/examples/nodeset/em77)
+
+    # generate euromap83 namespace which is using DI
+    ua_generate_nodeset_and_datatypes(
+        NAME "euromap83"
+        FILE_CSV "${FILE_EM77_PREFIX}/Opc_Ua.EUROMAP83.NodeSet2.csv"
+        FILE_BSD "${FILE_EM77_PREFIX}/Opc_Ua.EUROMAP83.NodeSet2.bsd"
+        NAMESPACE_IDX 3
+        FILE_NS "${FILE_EM77_PREFIX}/Opc_Ua.EUROMAP83.NodeSet2.xml"
+        DEPENDS "di"
+        INTERNAL
+    )
+
+    # generate euromap77 namespace which is using euromap83
+    ua_generate_nodeset_and_datatypes(
+        NAME "euromap77"
+        FILE_CSV "${FILE_EM77_PREFIX}/Opc_Ua.EUROMAP77.1_00.NodeId.csv"
+        FILE_BSD "${FILE_EM77_PREFIX}/Opc_Ua.EUROMAP77.NodeSet2.bsd"
+        NAMESPACE_IDX 4
+        FILE_NS "${FILE_EM77_PREFIX}/Opc_Ua.EUROMAP77.NodeSet2.xml"
+        DEPENDS "euromap83"
+        INTERNAL
+    )
+
+    add_example(server_euromap em77/server_euromap.c
+                ${UA_NODESET_DI_SOURCES}
+                ${UA_NODESET_EUROMAP83_SOURCES}
+                ${UA_NODESET_EUROMAP77_SOURCES}
+                ${UA_TYPES_DI_SOURCES}
+                ${UA_TYPES_EUROMAP83_SOURCES}
+                ${UA_TYPES_EUROMAP77_SOURCES}
+                )
+    add_dependencies(server_euromap open62541-generator-ns-euromap77)
     
 
 endif()
