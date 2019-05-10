@@ -220,7 +220,12 @@ struct UA_ServerConfig {
     UA_Boolean deleteEventCapability;
     UA_Boolean deleteAtTimeDataCapability;
 #endif
+
+    size_t (*browseCallback)(UA_Server *server, const UA_NodeId *node,
+                           UA_NodeId *results);
 };
+
+
 
 void UA_EXPORT
 UA_ServerConfig_clean(UA_ServerConfig *config);

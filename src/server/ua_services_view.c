@@ -254,6 +254,55 @@ browseWithContinuation(UA_Server *server, UA_Session *session,
 
     /* Browse the references */
     UA_Boolean done = browseReferences(server, node, cp, result);
+    if(server->config.browseCallback != NULL)
+    {
+        /*
+        typedef struct {
+            UA_NodeId referenceTypeId;
+            UA_Boolean isForward;
+            UA_ExpandedNodeId nodeId;
+            UA_QualifiedName browseName;
+            UA_LocalizedText displayName;
+            UA_NodeClass nodeClass;
+            UA_ExpandedNodeId typeDefinition;
+        } UA_ReferenceDescription;
+        */
+
+        UA_NodeId ids[10];
+        size_t resultSize = server->config.browseCallback(server, &node->nodeId, &ids[0]);
+        if(result->referencesSize>0)
+        {
+            result->referencesSize++;
+            UA_ReferenceDescription *tmp = (UA_ReferenceDescription *)UA_realloc(
+                result->references,
+                sizeof(UA_ReferenceDescription) * result->referencesSize);
+
+            if(tmp != NULL) {
+                result->references = tmp;
+            }
+
+            /*
+            typedef struct {
+                UA_NodeId nodeId;
+                UA_String namespaceUri;
+                UA_UInt32 serverIndex;
+            } UA_ExpandedNodeId;
+            */
+            UA_ReferenceDescription desc;
+            desc.browseName = UA_QUALIFIEDNAME(5, "demo");
+            desc.displayName = UA_LOCALIZEDTEXT("en", "demo");
+            desc.isForward = UA_TRUE;
+            desc.nodeId = UA_EXPANDEDNODEID_NUMERIC(0, 2253);
+            desc.referenceTypeId = UA_NODEID_NUMERIC(0, UA_NS0ID_HIERARCHICALREFERENCES);
+            desc.typeDefinition = UA_EXPANDEDNODEID_NUMERIC(5, 1000);
+
+            UA_ReferenceDescription_copy(&desc,
+                                         &result->references[result->referencesSize - 1]);
+
+            resultSize++;
+        }
+        
+    }
     UA_Nodestore_releaseNode(server->nsCtx, node);
     return done;
 }

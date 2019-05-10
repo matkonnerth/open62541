@@ -34,6 +34,7 @@
 #include <open62541/plugin/log_stdout.h>
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
+#include <open62541/server_config.h>
 
 #include <signal.h>
 #include <stdlib.h>
@@ -170,6 +171,21 @@ static void stopHandler(int sign) {
     running = false;
 }
 
+static size_t myBrowseCallback(UA_Server *server, const UA_NodeId *node,
+                       UA_NodeId *results)
+{
+    printf("browseCallback for Node ");
+    if(node->identifierType == UA_NODEIDTYPE_STRING)
+    {
+        printf("%s\n", node->identifier.byteString.data);
+    } else {
+        /* code */
+        printf("%d\n", node->identifier.numeric);
+    }
+
+    return 0;
+}
+
 int main(void) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
@@ -177,8 +193,12 @@ int main(void) {
     UA_Server *server = UA_Server_new();
     UA_ServerConfig_setDefault(UA_Server_getConfig(server));
 
+    UA_Server_getConfig(server)->browseCallback = myBrowseCallback;
+
     addHellWorldMethod(server);
     addIncInt32ArrayMethod(server);
+
+    
 
     UA_StatusCode retval = UA_Server_run(server, &running);
 
