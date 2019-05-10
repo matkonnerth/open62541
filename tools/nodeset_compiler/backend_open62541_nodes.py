@@ -205,7 +205,7 @@ def generateCommonVariableCode(node, nodeset):
                     code.append("attr.value.arrayDimensions = attr.arrayDimensions;")
                     logger.warning("printing arrayDimensions")
                 else:
-                    logger.error("Dimension with size 0 or value count mismatch detected, ArrayDimensions won't be copied to the Value attribute.")
+                    logger.warning("Dimension with size 0 or value count mismatch detected, ArrayDimensions won't be copied to the Value attribute.")
     elif node.value is not None:
         raise RuntimeError("Cannot encode dataTypeNode: " + dataTypeNode.browseName.name + " for value of node " + node.browseName.name + " " + str(node.id))
 
