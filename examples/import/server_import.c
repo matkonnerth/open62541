@@ -12,12 +12,13 @@
 #include <signal.h>
 #include <stdlib.h>
 
+
 UA_Boolean running = true;
 
 UA_Server *server;
 
 void
-myCallback(TNodeClass nodeClass, const TNode *node);
+myCallback(const TNode *node);
 
 UA_NodeId
 getTypeDefinitionIdFromChars2(const TNode *node);
@@ -30,33 +31,6 @@ stopHandler(int sign) {
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_SERVER, "received ctrl-c");
     running = false;
 }
-
-/* Default Binary - ns=0;i=298 */
-/*
-static UA_StatusCode
-function_namespace0_generated_51_begin(UA_Server *server, UA_UInt16 *ns) {
-    UA_StatusCode retVal = UA_STATUSCODE_GOOD;
-    UA_ObjectAttributes attr = UA_ObjectAttributes_default;
-    attr.displayName = UA_LOCALIZEDTEXT("", "Default Binary");
-    retVal |= UA_Server_addNode_begin(
-        server, UA_NODECLASS_OBJECT, UA_NODEID_NUMERIC(ns[0], 298),
-        UA_NODEID_NUMERIC(ns[0], 0), UA_NODEID_NUMERIC(ns[0], 0),
-        UA_QUALIFIEDNAME(ns[0], "Default Binary"), UA_NODEID_NUMERIC(ns[0], 76),
-        (const UA_NodeAttributes *)&attr, &UA_TYPES[UA_TYPES_OBJECTATTRIBUTES], NULL,
-        NULL);
-    retVal |= UA_Server_addReference(server, UA_NODEID_NUMERIC(ns[0], 298),
-                                     UA_NODEID_NUMERIC(ns[0], 38),
-                                     UA_EXPANDEDNODEID_NUMERIC(ns[0], 296), false);
-    return retVal;
-}
-
-static UA_StatusCode
-function_namespace0_generated_51_finish(UA_Server *server, UA_UInt16 *ns) {
-    return UA_Server_addNode_finish(server, UA_NODEID_NUMERIC(ns[0], 298));
-}
-*/
-
-
 
 UA_NodeId
 getNodeIdFromChars(const char *id)
@@ -124,6 +98,34 @@ getOrganizesId(const TNode *node) {
 }
 
 UA_NodeId
+getHasComponentId(const TNode *node);
+
+UA_NodeId
+getHasComponentId(const TNode *node) {
+    for(size_t i = 0; i < node->references->size; i++) {
+        if(!node->references->refs[i]->isForward &&
+           !strcmp("HasComponent", node->references->refs[i]->refType)) {
+            return getNodeIdFromChars(node->references->refs[i]->target);
+        }
+    }
+    return UA_NODEID_NULL;
+}
+
+UA_NodeId
+getHasPropertyId(const TNode *node);
+
+UA_NodeId
+getHasPropertyId(const TNode *node) {
+    for(size_t i = 0; i < node->references->size; i++) {
+        if(!node->references->refs[i]->isForward &&
+           !strcmp("HasProperty", node->references->refs[i]->refType)) {
+            return getNodeIdFromChars(node->references->refs[i]->target);
+        }
+    }
+    return UA_NODEID_NULL;
+}
+
+UA_NodeId
 getHasSubType(const TNode *node);
 
 UA_NodeId
@@ -136,48 +138,113 @@ getHasSubType(const TNode *node) {
     }
     return UA_NODEID_NULL;
 }
+UA_NodeId
+getReferenceTypeId(const Reference *ref);
 
-void myCallback(TNodeClass nodeClass, const TNode* node)
+UA_NodeId
+    getReferenceTypeId(const Reference *ref) {
+    if(ref==NULL)
+    {
+        return UA_NODEID_NULL;
+    }
+    if(!strcmp(ref->refType, "HasProperty"))
+    {
+        return UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY);
+    }
+    else if (!strcmp(ref->refType, "HasComponent"))
+    {
+        return UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT);
+    }
+    else if (!strcmp(ref->refType, "Organizes"))
+    {
+        return UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
+    }
+    else if (!strcmp(ref->refType, "HasTypeDefinition"))
+    {
+        return UA_NODEID_NUMERIC(0, UA_NS0ID_HASTYPEDEFINITION);
+    }
+    else if(!strcmp(ref->refType, "HasSubtype")) 
+    {
+        return UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE);
+    } 
+    else if(!strcmp(ref->refType, "HasEncoding")) 
+    {
+        return UA_NODEID_NUMERIC(0, UA_NS0ID_HASENCODING);
+    } else {
+        return UA_NODEID_NULL;
+    }
+}
+UA_NodeId
+getReferenceTarget(const Reference *ref);
+
+UA_NodeId getReferenceTarget(const Reference *ref) {
+    return getNodeIdFromChars(ref->target);
+}
+
+Reference *
+getHierachicalInverseReference(const TNode *node);
+
+Reference *
+getHierachicalInverseReference(const TNode *node) {
+    for(size_t i = 0; i < node->references->size; i++) {
+        if(!node->references->refs[i]->isForward)
+        {
+            return node->references->refs[i];
+        }
+    }
+    return NULL;
+}
+
+void myCallback(const TNode* node)
 {
     UA_NodeId id = getNodeIdFromChars(node->nodeId);
-    printf("BrowseName: %s\n", node->browseName);
-    printf("DisplayName: %s\n", node->displayName);
-    for(size_t i = 0; i < node->references->size; i++) {
-        printf("reftype: %s target: %s\n", node->references->refs[i]->refType, node->references->refs[i]->target);
-    }
-    switch(nodeClass) {
+    //printf("NodeId: %s BrowseName: %s DisplayName %s\n", node->nodeId, node->browseName,
+    //       node->displayName);
+    //for(size_t i = 0; i < node->references->size; i++) {
+    //    printf("\treftype: %s target: %s\n isForward: %i\n", node->references->refs[i]->refType, node->references->refs[i]->target, node->references->refs[i]->isForward);
+    //}
+    switch(node->nodeClass) {
         case NODECLASS_OBJECT:
         {
         
-                UA_ObjectAttributes oAttr = UA_ObjectAttributes_default;
-                oAttr.displayName = UA_LOCALIZEDTEXT("en-US", node->displayName);
-                UA_NodeId parentId =
-                    getNodeIdFromChars(((const TObjectNode *)node)->parentNodeId);
-                if(UA_NodeId_equal(&parentId, &UA_NODEID_NULL)) {
-                    parentId = getOrganizesId(node);
-                }
-                UA_NodeId refId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
-                UA_NodeId typeDefId = getTypeDefinitionIdFromChars2(node);
+            UA_ObjectAttributes oAttr = UA_ObjectAttributes_default;
+            oAttr.displayName = UA_LOCALIZEDTEXT("en-US", node->displayName);
+            UA_NodeId parentId =
+                getNodeIdFromChars(((const TObjectNode *)node)->parentNodeId);
+            Reference *ref = getHierachicalInverseReference(node);
+            if(UA_NodeId_equal(&parentId, &UA_NODEID_NULL)) {
+                parentId = getReferenceTarget(ref);
+            }
 
-                UA_Server_addObjectNode(
-                    server, id, parentId,refId,
-                    UA_QUALIFIEDNAME(1, node->browseName),
-                    typeDefId, oAttr, NULL, NULL);
-            
-                break;
+            UA_NodeId refId = getReferenceTypeId(ref);
+            UA_NodeId typeDefId = getTypeDefinitionIdFromChars2(node);
+
+            UA_StatusCode retval = UA_Server_addObjectNode(
+                server, id, parentId,refId,
+                UA_QUALIFIEDNAME(1, node->browseName),
+                typeDefId, oAttr, NULL, NULL);
+            if(retval != UA_STATUSCODE_GOOD)
+            {
+                printf("adding object node %s failed\n", node->nodeId);
+            }            
+            break;
         }
         case NODECLASS_OBJECTTYPE: {
 
             UA_ObjectTypeAttributes oAttr = UA_ObjectTypeAttributes_default;
             oAttr.displayName = UA_LOCALIZEDTEXT("en-US", node->displayName);
-
-            UA_NodeId parentId = getHasSubType(node);
-            UA_NodeId refId = UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE);
             
+            Reference *ref = getHierachicalInverseReference(node);            
+            UA_NodeId parentId = getReferenceTarget(ref);
+            UA_NodeId refId = getReferenceTypeId(ref);
 
-            UA_Server_addObjectTypeNode(
-                server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), 
-                 oAttr, NULL, NULL);
+            UA_StatusCode retval = UA_Server_addObjectTypeNode(
+                server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), oAttr,
+                NULL, NULL);
+
+            if(retval != UA_STATUSCODE_GOOD) {
+                printf("adding object node %s failed\n", node->nodeId);
+            }
 
             break;
         }
@@ -190,10 +257,12 @@ void myCallback(TNodeClass nodeClass, const TNode* node)
 
             UA_NodeId parentId =
                 getNodeIdFromChars(((const TVariableNode *)node)->parentNodeId);
+            Reference *ref = getHierachicalInverseReference(node);
             if(UA_NodeId_equal(&parentId, &UA_NODEID_NULL)) {
-                parentId = getOrganizesId(node);
+                parentId = getReferenceTarget(ref);
             }
-            UA_NodeId refId = UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT);
+
+            UA_NodeId refId = getReferenceTypeId(ref);
             UA_NodeId typeDefId = getTypeDefinitionIdFromChars2(node);
             UA_Server_addVariableNode(server, id, parentId, refId,
                                       UA_QUALIFIEDNAME(1, node->browseName), typeDefId,
@@ -205,8 +274,9 @@ void myCallback(TNodeClass nodeClass, const TNode* node)
             UA_DataTypeAttributes attr = UA_DataTypeAttributes_default;
             attr.displayName = UA_LOCALIZEDTEXT("", node->displayName);
 
-            UA_NodeId parentId = getHasSubType(node);
-            UA_NodeId refId = UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE);
+            Reference *ref = getHierachicalInverseReference(node);            
+            UA_NodeId parentId = getReferenceTarget(ref);
+            UA_NodeId refId = getReferenceTypeId(ref);
 
             UA_Server_addDataTypeNode(server, id, parentId, refId,
                                       UA_QUALIFIEDNAME(1, node->browseName), attr, NULL,
@@ -228,8 +298,8 @@ int main(int argc, char** argv) {
 
     FileHandler handler;
     //handler.file = "/home/matzy/git/open62541/examples/import/system.txt";
-    //handler.file = "/home/matzy/git/open62541/examples/nodeset/testnodeset.xml";
-    handler.file = "/home/matzy/git/open62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
+    handler.file = "/home/matzy/git/open62541/examples/import/testnodeset.xml";
+    //handler.file = "/home/matzy/git/open62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
     handler.callback = myCallback;
     loadFile(&handler);
 

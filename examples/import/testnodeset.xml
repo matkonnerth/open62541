@@ -24,7 +24,28 @@
             <ua:ModelInfo Tool="UaModeler" Hash="NY/CbF6sk/OjLXFpjvfTAA==" Version="1.6.2"/>
         </Extension>
     </Extensions>
-    <UAObject NodeId="ns=1;i=50000" BrowseName="1:DemoObject" ParentNodeId="i=85">
+    <UAObjectType NodeId="ns=1;i=60000" BrowseName="1:AbstractType" IsAbstract="true">
+        <DisplayName>MyAbstractType</DisplayName>
+        <Description>Represents the interface (interface card) of a Device to a Network.</Description>
+        <References>
+        <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+        </References>
+    </UAObjectType>
+    <UAObjectType NodeId="ns=1;i=60001" BrowseName="1:ConcreteType" IsAbstract="false">
+        <DisplayName>MyConcreteType</DisplayName>
+        <Description>Represents the interface (interface card) of a Device to a Network.</Description>
+        <References>
+        <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=60000</Reference>
+        </References>
+    </UAObjectType>
+    <UAObject NodeId="ns=1;i=50000" BrowseName="1:ConcreteTypeInstance" ParentNodeId="i=85">
+        <DisplayName>ConcreteTypeInstance</DisplayName>
+        <References>
+            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+            <Reference ReferenceType="HasTypeDefinition">ns=1;i=60001</Reference>
+        </References>
+    </UAObject>    
+    <UAObject NodeId="ns=1;i=50001" BrowseName="1:DemoObject" ParentNodeId="i=85">
         <DisplayName>DemoObject</DisplayName>
         <References>
             <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
