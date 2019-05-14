@@ -173,6 +173,8 @@ endif()
 
 add_subdirectory(nodeset)
 
+add_subdirectory(import)
+
 ####################
 #  Example PubSub  #
 ####################

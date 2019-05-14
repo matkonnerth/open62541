@@ -24,7 +24,7 @@
             <ua:ModelInfo Tool="UaModeler" Hash="NY/CbF6sk/OjLXFpjvfTAA==" Version="1.6.2"/>
         </Extension>
     </Extensions>
-    <UAObject NodeId="ns=1;i=50000" BrowseName="1:DemoObject">
+    <UAObject NodeId="ns=1;i=50000" BrowseName="1:DemoObject" ParentNodeId="i=85">
         <DisplayName>DemoObject</DisplayName>
         <References>
             <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
