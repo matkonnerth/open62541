@@ -51,6 +51,7 @@ getNodeIdFromChars(const char *id)
                 return UA_NODEID_NUMERIC(0, idx);
                 break;
             }
+
                 
             
         }
@@ -64,6 +65,13 @@ getNodeIdFromChars(const char *id)
                 idxSemi[0] = '\0';
                 UA_UInt16 nsidx = (UA_UInt16)atoi(&id[3]);
                 return UA_NODEID_NUMERIC(nsidx, nodeId);
+                break;
+            }
+            case 's':
+            {
+                idxSemi[0] = '\0';
+                UA_UInt16 nsidx = (UA_UInt16)atoi(&id[3]);
+                return UA_NODEID_STRING(nsidx, &idxSemi[3]);
                 break;
             }
         }
@@ -187,9 +195,11 @@ UA_NodeId
     else if(!strcmp(ref->refType, "HasEncoding")) 
     {
         return UA_NODEID_NUMERIC(0, UA_NS0ID_HASENCODING);
-    } else {
-        return UA_NODEID_NULL;
+    } 
+    else {
+        return getNodeIdFromChars(ref->refType);
     }
+    return UA_NODEID_NULL;
 }
 UA_NodeId
 getReferenceTarget(const Reference *ref);
@@ -247,6 +257,8 @@ void printOrderedNodes(const TNode* node)
         //printf("\tdatatype: %s\n", ((const TVariableNode *)node)->datatype);
         //printf("\tvalueRank: %s\n", ((const TVariableNode *)node)->valueRank);
         //printf("\tarrayDimensions: %s\n", ((const TVariableNode *)node)->valueRank);
+        break;
+    case NODECLASS_REFERENCETYPE:
         break;
     }
     Reference *hierachicalRef = node->hierachicalRefs;
@@ -309,7 +321,7 @@ void myCallback(const TNode* node)
 
 
             UA_NodeId parentId =
-                getNodeIdFromChars(((const TObjectNode *)node)->parentNodeId);
+                getNodeIdFromChars(((const TMethodNode *)node)->parentNodeId);
             Reference *ref = getHierachicalInverseReference(node);
             if(UA_NodeId_equal(&parentId, &UA_NODEID_NULL)) {
                 parentId = getReferenceTarget(ref);
@@ -318,12 +330,13 @@ void myCallback(const TNode* node)
             UA_NodeId refId = getReferenceTypeId(ref);
            // UA_NodeId typeDefId = getTypeDefinitionIdFromChars2(node);
 
-            UA_Server_addMethodNode(
-                server, id, parentId,refId,
-                UA_QUALIFIEDNAME(1, node->browseName),
-                attr, NULL, 0, NULL, 0, NULL, NULL, NULL);
-                
-           
+            UA_StatusCode retval = UA_Server_addMethodNode(
+                server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), attr,
+                NULL, 0, NULL, 0, NULL, NULL, NULL);
+
+            if(retval != UA_STATUSCODE_GOOD) {
+                printf("adding object node %s failed\n", node->nodeId);
+            }
 
             break;
         }
@@ -348,11 +361,31 @@ void myCallback(const TNode* node)
             break;
         }
 
+        case NODECLASS_REFERENCETYPE: {
+
+            UA_ReferenceTypeAttributes attr = UA_ReferenceTypeAttributes_default;
+            attr.symmetric = true;
+            attr.displayName = UA_LOCALIZEDTEXT("en-US", node->displayName);
+
+            Reference *ref = getHierachicalInverseReference(node);
+            UA_NodeId parentId = getReferenceTarget(ref);
+            UA_NodeId refId = getReferenceTypeId(ref);
+
+            UA_StatusCode retval = UA_Server_addReferenceTypeNode(
+                server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), attr,
+                NULL, NULL);
+
+            if(retval != UA_STATUSCODE_GOOD) {
+                printf("adding reftype node %s failed\n", node->nodeId);
+            }
+            break;
+        }
 
         case NODECLASS_VARIABLE:
         {
             UA_VariableAttributes attr = UA_VariableAttributes_default;
             attr.dataType = getNodeIdFromChars(((const TVariableNode *)node)->datatype);
+            attr.valueRank = atoi(((const TVariableNode *)node)->valueRank);
 
             UA_NodeId parentId =
                 getNodeIdFromChars(((const TVariableNode *)node)->parentNodeId);
@@ -363,9 +396,12 @@ void myCallback(const TNode* node)
 
             UA_NodeId refId = getReferenceTypeId(ref);
             UA_NodeId typeDefId = getTypeDefinitionIdFromChars2(node);
-            UA_Server_addVariableNode(server, id, parentId, refId,
-                                      UA_QUALIFIEDNAME(1, node->browseName), typeDefId,
-                                      attr, NULL, NULL);
+            UA_StatusCode retval = UA_Server_addVariableNode(
+                server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName),
+                typeDefId, attr, NULL, NULL);
+            if(retval != UA_STATUSCODE_GOOD) {
+                printf("adding reftype node %s failed\n", node->nodeId);
+            }
             break;
         }
         case NODECLASS_DATATYPE:
@@ -377,10 +413,12 @@ void myCallback(const TNode* node)
             UA_NodeId parentId = getReferenceTarget(ref);
             UA_NodeId refId = getReferenceTypeId(ref);
 
-            UA_Server_addDataTypeNode(server, id, parentId, refId,
-                                      UA_QUALIFIEDNAME(1, node->browseName), attr, NULL,
-                                      NULL);
-
+            UA_StatusCode retval = UA_Server_addDataTypeNode(
+                server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), attr,
+                NULL, NULL);
+            if(retval != UA_STATUSCODE_GOOD) {
+                printf("adding reftype node %s failed\n", node->nodeId);
+            }
         }
         break;
     }
@@ -391,7 +429,7 @@ int main(int argc, char** argv) {
      if(argc!=2)
     {
         printf("specify nodesetfile as argument. E.g. xmlLoader text.xml\n");
-        //return -1;
+        return -1;
     }
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
@@ -403,8 +441,10 @@ int main(int argc, char** argv) {
 
     FileHandler handler;
     //handler.file = "/home/matzy/git/open62541/examples/import/system.txt";
-    handler.file = "/mnt/c/c2k/git/mkOpen62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
-    //handler.file = argv[1];
+    //handler.file = "/mnt/c/c2k/git/mkOpen62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
+    //handler.file = "/home/matzy/git/open62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
+    //handler.file = "/home/matzy/git/nodesetGeneration/examples/nodeset/immtypes.xml";
+    handler.file = argv[1];
     handler.callback = myCallback;
     //handler.callback = printOrderedNodes;
     loadFile(&handler);
