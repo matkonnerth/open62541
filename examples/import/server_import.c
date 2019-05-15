@@ -75,10 +75,10 @@ getNodeIdFromChars(const char *id)
 
 UA_NodeId getTypeDefinitionIdFromChars2(const TNode *node) 
 {
-    Reference *hierachicalRef = node->hierachicalRefs;
+    Reference *hierachicalRef = node->nonHierachicalRefs;
     while(hierachicalRef)
     {
-        if(!strcmp("HasComponent", hierachicalRef->refType)) {
+        if(!strcmp("HasTypeDefinition", hierachicalRef->refType)) {
             return getNodeIdFromChars(hierachicalRef->target);
         }
         hierachicalRef = hierachicalRef->next;
@@ -207,10 +207,61 @@ getHierachicalInverseReference(const TNode *node) {
     Reference *hierachicalRef = node->hierachicalRefs;
     while(hierachicalRef)
     {
-        return hierachicalRef;
+        if(!hierachicalRef->isForward)
+        {
+            return hierachicalRef;
+        }        
         hierachicalRef = hierachicalRef->next;
     }   
     return NULL;
+}
+
+void printOrderedNodes(const TNode* node);
+void printOrderedNodes(const TNode* node)
+{
+    printf("NodeId: %s BrowseName: %s DisplayName: %s\n", node->nodeId, node->browseName, node->displayName);
+    
+    switch (node->nodeClass)
+    {
+    case NODECLASS_OBJECT:
+        //printf("\tparentNodeId: %s\n", ((const TObjectNode *)node)->parentNodeId);
+        //printf("\teventNotifier: %s\n", ((const TObjectNode *)node)->eventNotifier);
+        break;
+    case NODECLASS_OBJECTTYPE:
+        //printf("\tparentNodeId: %s\n", ((const TObjectType *)node)->
+        
+        break;
+    case NODECLASS_DATATYPE:
+    //printf("\tparentNodeId: %s\n", ((const TObjectType *)node)->
+    
+        break;
+    case NODECLASS_VARIABLE:
+        //printf("\tparentNodeId: %s\n", ((const TVariableNode *)node)->parentNodeId);
+        //printf("\tdatatype: %s\n", ((const TVariableNode *)node)->datatype);
+        //printf("\tvalueRank: %s\n", ((const TVariableNode *)node)->valueRank);
+        //printf("\tarrayDimensions: %s\n", ((const TVariableNode *)node)->valueRank);
+        break;
+
+    case NODECLASS_METHOD:
+        //printf("\tparentNodeId: %s\n", ((const TVariableNode *)node)->parentNodeId);
+        //printf("\tdatatype: %s\n", ((const TVariableNode *)node)->datatype);
+        //printf("\tvalueRank: %s\n", ((const TVariableNode *)node)->valueRank);
+        //printf("\tarrayDimensions: %s\n", ((const TVariableNode *)node)->valueRank);
+        break;
+    }
+    Reference *hierachicalRef = node->hierachicalRefs;
+    while(hierachicalRef)
+    {
+        //printf("\treftype: %s target: %s\n", hierachicalRef->refType, hierachicalRef->target);
+        hierachicalRef = hierachicalRef->next;
+    }
+
+    Reference *nonHierRef = node->nonHierachicalRefs;
+    while (nonHierRef)
+    {
+        //printf("\treftype: %s target: %s\n", nonHierRef->refType, nonHierRef->target);
+        nonHierRef = nonHierRef->next;
+    }
 }
 
 void myCallback(const TNode* node)
@@ -247,6 +298,36 @@ void myCallback(const TNode* node)
             }            
             break;
         }
+
+        case NODECLASS_METHOD:
+        {
+            
+            UA_MethodAttributes attr = UA_MethodAttributes_default;
+            attr.executable = true;
+            attr.userExecutable = true;
+            attr.displayName = UA_LOCALIZEDTEXT("", node->displayName);
+
+
+            UA_NodeId parentId =
+                getNodeIdFromChars(((const TObjectNode *)node)->parentNodeId);
+            Reference *ref = getHierachicalInverseReference(node);
+            if(UA_NodeId_equal(&parentId, &UA_NODEID_NULL)) {
+                parentId = getReferenceTarget(ref);
+            }
+
+            UA_NodeId refId = getReferenceTypeId(ref);
+           // UA_NodeId typeDefId = getTypeDefinitionIdFromChars2(node);
+
+            UA_Server_addMethodNode(
+                server, id, parentId,refId,
+                UA_QUALIFIEDNAME(1, node->browseName),
+                attr, NULL, 0, NULL, 0, NULL, NULL, NULL);
+                
+           
+
+            break;
+        }
+
         case NODECLASS_OBJECTTYPE: {
 
             UA_ObjectTypeAttributes oAttr = UA_ObjectTypeAttributes_default;
@@ -306,6 +387,12 @@ void myCallback(const TNode* node)
 }
 
 int main(int argc, char** argv) {
+
+     if(argc!=2)
+    {
+        printf("specify nodesetfile as argument. E.g. xmlLoader text.xml\n");
+        //return -1;
+    }
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
     
@@ -316,9 +403,10 @@ int main(int argc, char** argv) {
 
     FileHandler handler;
     //handler.file = "/home/matzy/git/open62541/examples/import/system.txt";
-    handler.file = "/home/matzy/git/open62541/examples/import/testnodeset.xml";
-    //handler.file = "/home/matzy/git/open62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
+    handler.file = "/mnt/c/c2k/git/mkOpen62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
+    //handler.file = argv[1];
     handler.callback = myCallback;
+    //handler.callback = printOrderedNodes;
     loadFile(&handler);
 
     retval = UA_Server_run(server, &running);
