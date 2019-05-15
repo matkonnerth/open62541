@@ -5,6 +5,3 @@
 	path = deps/ua-nodeset
 	url = https://github.com/pro/UA-Nodeset.git
 	branch = missing_access_restriction_type
-[submodule "xmlLoader"]
-	path = xmlLoader
-	url = https://github.com/matkonnerth/xmlLoader.git
