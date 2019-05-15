@@ -75,12 +75,15 @@ getNodeIdFromChars(const char *id)
 
 UA_NodeId getTypeDefinitionIdFromChars2(const TNode *node) 
 {
-    for(size_t i = 0; i < node->references->size; i++) {
-        if(!strcmp("HasTypeDefinition", node->references->refs[i]->refType))
-        {
-            return getNodeIdFromChars(node->references->refs[i]->target);
+    Reference *hierachicalRef = node->hierachicalRefs;
+    while(hierachicalRef)
+    {
+        if(!strcmp("HasComponent", hierachicalRef->refType)) {
+            return getNodeIdFromChars(hierachicalRef->target);
         }
+        hierachicalRef = hierachicalRef->next;
     }
+    return UA_NODEID_NULL;
     return UA_NODEID_NULL;
 }
 UA_NodeId
@@ -88,11 +91,14 @@ getOrganizesId(const TNode *node);
 
 UA_NodeId
 getOrganizesId(const TNode *node) {
-    for(size_t i = 0; i < node->references->size; i++) {
-        if(!node->references->refs[i]->isForward && !strcmp("Organizes",
-                                            node->references->refs[i]->refType)) {
-            return getNodeIdFromChars(node->references->refs[i]->target);
+    Reference *hierachicalRef = node->hierachicalRefs;
+    while(hierachicalRef)
+    {
+        if(!hierachicalRef->isForward &&
+           !strcmp("Organizes", hierachicalRef->refType)) {
+            return getNodeIdFromChars(hierachicalRef->target);
         }
+        hierachicalRef = hierachicalRef->next;
     }
     return UA_NODEID_NULL;
 }
@@ -102,11 +108,14 @@ getHasComponentId(const TNode *node);
 
 UA_NodeId
 getHasComponentId(const TNode *node) {
-    for(size_t i = 0; i < node->references->size; i++) {
-        if(!node->references->refs[i]->isForward &&
-           !strcmp("HasComponent", node->references->refs[i]->refType)) {
-            return getNodeIdFromChars(node->references->refs[i]->target);
+    Reference *hierachicalRef = node->hierachicalRefs;
+    while(hierachicalRef)
+    {
+        if(!hierachicalRef->isForward &&
+           !strcmp("HasComponent", hierachicalRef->refType)) {
+            return getNodeIdFromChars(hierachicalRef->target);
         }
+        hierachicalRef = hierachicalRef->next;
     }
     return UA_NODEID_NULL;
 }
@@ -115,12 +124,16 @@ UA_NodeId
 getHasPropertyId(const TNode *node);
 
 UA_NodeId
-getHasPropertyId(const TNode *node) {
-    for(size_t i = 0; i < node->references->size; i++) {
-        if(!node->references->refs[i]->isForward &&
-           !strcmp("HasProperty", node->references->refs[i]->refType)) {
-            return getNodeIdFromChars(node->references->refs[i]->target);
+getHasPropertyId(const TNode *node)
+{
+    Reference *hierachicalRef = node->hierachicalRefs;
+    while(hierachicalRef)
+    {
+        if(!hierachicalRef->isForward &&
+           !strcmp("HasProperty", hierachicalRef->refType)) {
+            return getNodeIdFromChars(hierachicalRef->target);
         }
+        hierachicalRef = hierachicalRef->next;
     }
     return UA_NODEID_NULL;
 }
@@ -129,13 +142,17 @@ UA_NodeId
 getHasSubType(const TNode *node);
 
 UA_NodeId
-getHasSubType(const TNode *node) {
-    for(size_t i = 0; i < node->references->size; i++) {
-        if(!node->references->refs[i]->isForward &&
-           !strcmp("HasSubtype", node->references->refs[i]->refType)) {
-            return getNodeIdFromChars(node->references->refs[i]->target);
-        }
-    }
+getHasSubType(const TNode *node) 
+{
+    Reference *hierachicalRef = node->hierachicalRefs;
+    while(hierachicalRef)
+    {        
+        if(!hierachicalRef->isForward &&
+           !strcmp("HasSubtype", hierachicalRef->refType)) {
+            return getNodeIdFromChars(hierachicalRef->target);
+        }        
+        hierachicalRef = hierachicalRef->next;
+    }       
     return UA_NODEID_NULL;
 }
 UA_NodeId
@@ -186,12 +203,13 @@ getHierachicalInverseReference(const TNode *node);
 
 Reference *
 getHierachicalInverseReference(const TNode *node) {
-    for(size_t i = 0; i < node->references->size; i++) {
-        if(!node->references->refs[i]->isForward)
-        {
-            return node->references->refs[i];
-        }
-    }
+
+    Reference *hierachicalRef = node->hierachicalRefs;
+    while(hierachicalRef)
+    {
+        return hierachicalRef;
+        hierachicalRef = hierachicalRef->next;
+    }   
     return NULL;
 }
 
