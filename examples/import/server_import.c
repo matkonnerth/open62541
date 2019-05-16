@@ -400,7 +400,7 @@ void myCallback(const TNode* node)
                 server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName),
                 typeDefId, attr, NULL, NULL);
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding reftype node %s failed\n", node->nodeId);
+                printf("adding variable node %s failed\n", node->nodeId);
             }
             break;
         }
@@ -429,7 +429,7 @@ int main(int argc, char** argv) {
      if(argc!=2)
     {
         printf("specify nodesetfile as argument. E.g. xmlLoader text.xml\n");
-        return -1;
+        //return -1;
     }
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
@@ -443,11 +443,15 @@ int main(int argc, char** argv) {
     //handler.file = "/home/matzy/git/open62541/examples/import/system.txt";
     //handler.file = "/mnt/c/c2k/git/mkOpen62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
     //handler.file = "/home/matzy/git/open62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
-    //handler.file = "/home/matzy/git/nodesetGeneration/examples/nodeset/immtypes.xml";
-    handler.file = argv[1];
+    handler.file = "/home/matzy/opcua/sdk/bin/testNodeset.xml";
+    //handler.file = argv[1];
     handler.callback = myCallback;
     //handler.callback = printOrderedNodes;
-    loadFile(&handler);
+    for(int i = 0; i < 1; i++)
+    {
+        loadFile(&handler);
+    }
+        
 
     retval = UA_Server_run(server, &running);
 
