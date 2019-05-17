@@ -71,7 +71,7 @@ getNodeIdFromChars(const char *id)
             {
                 idxSemi[0] = '\0';
                 UA_UInt16 nsidx = (UA_UInt16)atoi(&id[3]);
-                return UA_NODEID_STRING(nsidx, &idxSemi[3]);
+                return UA_NODEID_STRING_ALLOC(nsidx, &idxSemi[3]);
                 break;
             }
         }
@@ -443,11 +443,11 @@ int main(int argc, char** argv) {
     //handler.file = "/home/matzy/git/open62541/examples/import/system.txt";
     //handler.file = "/mnt/c/c2k/git/mkOpen62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
     //handler.file = "/home/matzy/git/open62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
-    handler.file = "/home/matzy/opcua/sdk/bin/testNodeset.xml";
-    //handler.file = argv[1];
+    //handler.file = "/home/matzy/opcua/sdk/bin/testNodeset.xml";
+    handler.file = argv[1];
     handler.callback = myCallback;
     //handler.callback = printOrderedNodes;
-    for(int i = 0; i < 1; i++)
+    for(int i = 0; i < 100; i++)
     {
         loadFile(&handler);
     }
