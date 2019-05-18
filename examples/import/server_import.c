@@ -24,7 +24,7 @@ UA_NodeId
 getTypeDefinitionIdFromChars2(const TNode *node);
 
 UA_NodeId
-getNodeIdFromChars(const char *id);
+getNodeIdFromChars(TNodeId id);
 
 static void
 stopHandler(int sign) {
@@ -33,50 +33,28 @@ stopHandler(int sign) {
 }
 
 UA_NodeId
-getNodeIdFromChars(const char *id)
+getNodeIdFromChars(TNodeId id)
 {
-    if (id==NULL)
+    if (id.id==0)
     {
         return UA_NODEID_NULL;
     }
-    char* idxSemi = strchr(id, ';');
-    if(idxSemi==NULL)
-    {
-        switch(id[0])
-        {
-            //integer
-            case 'i':
-            {
-                UA_UInt32 idx = (UA_UInt32) atoi(&id[2]);
-                return UA_NODEID_NUMERIC(0, idx);
-                break;
-            }
+    UA_UInt16 nsidx = (UA_UInt16)id.nsIdx;
 
-                
-            
+    switch(id.id[0]) {
+        // integer
+        case 'i': {
+            UA_UInt32 nodeId = (UA_UInt32)atoi(&id.id[2]);               
+            return UA_NODEID_NUMERIC(nsidx, nodeId);
+            break;
         }
-    }
-    else
-    {        
-        switch(idxSemi[1]) {
-            // integer
-            case 'i': {
-                UA_UInt32 nodeId = (UA_UInt32)atoi(&idxSemi[3]);
-                idxSemi[0] = '\0';
-                UA_UInt16 nsidx = (UA_UInt16)atoi(&id[3]);
-                return UA_NODEID_NUMERIC(nsidx, nodeId);
-                break;
-            }
-            case 's':
-            {
-                idxSemi[0] = '\0';
-                UA_UInt16 nsidx = (UA_UInt16)atoi(&id[3]);
-                return UA_NODEID_STRING_ALLOC(nsidx, &idxSemi[3]);
-                break;
-            }
+        case 's':
+        {
+            return UA_NODEID_STRING_ALLOC(nsidx, &id.id[2]);
+            break;
         }
-        
-    }
+    }        
+    
     return UA_NODEID_NULL;
 }
 
@@ -86,7 +64,7 @@ UA_NodeId getTypeDefinitionIdFromChars2(const TNode *node)
     Reference *hierachicalRef = node->nonHierachicalRefs;
     while(hierachicalRef)
     {
-        if(!strcmp("HasTypeDefinition", hierachicalRef->refType)) {
+        if(!strcmp("HasTypeDefinition", hierachicalRef->refType.idString)) {
             return getNodeIdFromChars(hierachicalRef->target);
         }
         hierachicalRef = hierachicalRef->next;
@@ -103,7 +81,7 @@ getOrganizesId(const TNode *node) {
     while(hierachicalRef)
     {
         if(!hierachicalRef->isForward &&
-           !strcmp("Organizes", hierachicalRef->refType)) {
+           !strcmp("Organizes", hierachicalRef->refType.idString)) {
             return getNodeIdFromChars(hierachicalRef->target);
         }
         hierachicalRef = hierachicalRef->next;
@@ -120,7 +98,7 @@ getHasComponentId(const TNode *node) {
     while(hierachicalRef)
     {
         if(!hierachicalRef->isForward &&
-           !strcmp("HasComponent", hierachicalRef->refType)) {
+           !strcmp("HasComponent", hierachicalRef->refType.idString)) {
             return getNodeIdFromChars(hierachicalRef->target);
         }
         hierachicalRef = hierachicalRef->next;
@@ -138,7 +116,7 @@ getHasPropertyId(const TNode *node)
     while(hierachicalRef)
     {
         if(!hierachicalRef->isForward &&
-           !strcmp("HasProperty", hierachicalRef->refType)) {
+           !strcmp("HasProperty", hierachicalRef->refType.idString)) {
             return getNodeIdFromChars(hierachicalRef->target);
         }
         hierachicalRef = hierachicalRef->next;
@@ -156,7 +134,7 @@ getHasSubType(const TNode *node)
     while(hierachicalRef)
     {        
         if(!hierachicalRef->isForward &&
-           !strcmp("HasSubtype", hierachicalRef->refType)) {
+           !strcmp("HasSubtype", hierachicalRef->refType.idString)) {
             return getNodeIdFromChars(hierachicalRef->target);
         }        
         hierachicalRef = hierachicalRef->next;
@@ -172,27 +150,27 @@ UA_NodeId
     {
         return UA_NODEID_NULL;
     }
-    if(!strcmp(ref->refType, "HasProperty"))
+    if(!strcmp(ref->refType.idString, "HasProperty"))
     {
         return UA_NODEID_NUMERIC(0, UA_NS0ID_HASPROPERTY);
     }
-    else if (!strcmp(ref->refType, "HasComponent"))
+    else if (!strcmp(ref->refType.idString, "HasComponent"))
     {
         return UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT);
     }
-    else if (!strcmp(ref->refType, "Organizes"))
+    else if (!strcmp(ref->refType.idString, "Organizes"))
     {
         return UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
     }
-    else if (!strcmp(ref->refType, "HasTypeDefinition"))
+    else if (!strcmp(ref->refType.idString, "HasTypeDefinition"))
     {
         return UA_NODEID_NUMERIC(0, UA_NS0ID_HASTYPEDEFINITION);
     }
-    else if(!strcmp(ref->refType, "HasSubtype")) 
+    else if(!strcmp(ref->refType.idString, "HasSubtype")) 
     {
         return UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE);
     } 
-    else if(!strcmp(ref->refType, "HasEncoding")) 
+    else if(!strcmp(ref->refType.idString, "HasEncoding")) 
     {
         return UA_NODEID_NUMERIC(0, UA_NS0ID_HASENCODING);
     } 
@@ -229,7 +207,7 @@ getHierachicalInverseReference(const TNode *node) {
 void printOrderedNodes(const TNode* node);
 void printOrderedNodes(const TNode* node)
 {
-    printf("NodeId: %s BrowseName: %s DisplayName: %s\n", node->nodeId, node->browseName, node->displayName);
+    printf("NodeId: %s BrowseName: %s DisplayName: %s\n", node->id.idString, node->browseName, node->displayName);
     
     switch (node->nodeClass)
     {
@@ -278,7 +256,7 @@ void printOrderedNodes(const TNode* node)
 
 void myCallback(const TNode* node)
 {
-    UA_NodeId id = getNodeIdFromChars(node->nodeId);
+    UA_NodeId id = getNodeIdFromChars(node->id);
     //printf("NodeId: %s BrowseName: %s DisplayName %s\n", node->nodeId, node->browseName,
     //       node->displayName);
     //for(size_t i = 0; i < node->references->size; i++) {
@@ -306,7 +284,7 @@ void myCallback(const TNode* node)
                 typeDefId, oAttr, NULL, NULL);
             if(retval != UA_STATUSCODE_GOOD)
             {
-                printf("adding object node %s failed\n", node->nodeId);
+                printf("adding object node %s failed\n", node->id.idString);
             }            
             break;
         }
@@ -335,7 +313,7 @@ void myCallback(const TNode* node)
                 NULL, 0, NULL, 0, NULL, NULL, NULL);
 
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding object node %s failed\n", node->nodeId);
+                printf("adding object node %s failed\n", node->id.idString);
             }
 
             break;
@@ -355,7 +333,7 @@ void myCallback(const TNode* node)
                 NULL, NULL);
 
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding object node %s failed\n", node->nodeId);
+                printf("adding object node %s failed\n", node->id.idString);
             }
 
             break;
@@ -376,7 +354,7 @@ void myCallback(const TNode* node)
                 NULL, NULL);
 
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding reftype node %s failed\n", node->nodeId);
+                printf("adding reftype node %s failed\n", node->id.idString);
             }
             break;
         }
@@ -386,6 +364,13 @@ void myCallback(const TNode* node)
             UA_VariableAttributes attr = UA_VariableAttributes_default;
             attr.dataType = getNodeIdFromChars(((const TVariableNode *)node)->datatype);
             attr.valueRank = atoi(((const TVariableNode *)node)->valueRank);
+            char *tmp = "";
+            if(strcmp(((const TVariableNode *)node)->arrayDimensions, tmp))
+            {
+                attr.arrayDimensionsSize = 1;
+                UA_UInt32 dim = (UA_UInt32)atoi(((const TVariableNode *)node)->arrayDimensions);
+                attr.arrayDimensions = &dim;
+            }
 
             UA_NodeId parentId =
                 getNodeIdFromChars(((const TVariableNode *)node)->parentNodeId);
@@ -400,7 +385,7 @@ void myCallback(const TNode* node)
                 server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName),
                 typeDefId, attr, NULL, NULL);
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding variable node %s failed\n", node->nodeId);
+                printf("adding variable node %s failed\n", node->id.idString);
             }
             break;
         }
@@ -417,11 +402,18 @@ void myCallback(const TNode* node)
                 server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), attr,
                 NULL, NULL);
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding reftype node %s failed\n", node->nodeId);
+                printf("adding reftype node %s failed\n", node->id.idString);
             }
         }
         break;
     }
+}
+
+static int addNamespace(const char *namespaceUri);
+static int addNamespace(const char* namespaceUri)
+{
+    int idx = (int)UA_Server_addNamespace(server, namespaceUri);
+    return idx;
 }
 
 int main(int argc, char** argv) {
@@ -446,12 +438,14 @@ int main(int argc, char** argv) {
     //handler.file = "/home/matzy/opcua/sdk/bin/testNodeset.xml";
     handler.file = argv[1];
     handler.callback = myCallback;
-    //handler.callback = printOrderedNodes;
-    for(int i = 0; i < 100; i++)
+    handler.addNamespace = addNamespace;
+
+    for(int cnt = 1; cnt < argc; cnt++)
     {
+        handler.file = argv[cnt];
         loadFile(&handler);
     }
-        
+
 
     retval = UA_Server_run(server, &running);
 
