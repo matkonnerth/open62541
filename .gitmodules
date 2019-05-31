@@ -5,3 +5,6 @@
 	path = deps/ua-nodeset
 	url = https://github.com/pro/UA-Nodeset.git
 	branch = missing_access_restriction_type
+[submodule "examples/import/nodesetLoader"]
+	path = examples/import/nodesetLoader
+	url = https://github.com/matkonnerth/nodesetLoader.git
