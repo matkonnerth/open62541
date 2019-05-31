@@ -4,14 +4,9 @@
 #include <open62541/plugin/log_stdout.h>
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
-
-#include <xmlLoader.h>
-
-
-
 #include <signal.h>
 #include <stdlib.h>
-
+#include <xmlparser.h>
 
 UA_Boolean running = true;
 
@@ -53,11 +48,9 @@ getNodeIdFromChars(TNodeId id)
             return UA_NODEID_STRING_ALLOC(nsidx, &id.id[2]);
             break;
         }
-    }        
-    
+    }
     return UA_NODEID_NULL;
 }
-
 
 UA_NodeId getTypeDefinitionIdFromChars2(const TNode *node) 
 {
@@ -204,64 +197,9 @@ getHierachicalInverseReference(const TNode *node) {
     return NULL;
 }
 
-void printOrderedNodes(const TNode* node);
-void printOrderedNodes(const TNode* node)
-{
-    printf("NodeId: %s BrowseName: %s DisplayName: %s\n", node->id.idString, node->browseName, node->displayName);
-    
-    switch (node->nodeClass)
-    {
-    case NODECLASS_OBJECT:
-        //printf("\tparentNodeId: %s\n", ((const TObjectNode *)node)->parentNodeId);
-        //printf("\teventNotifier: %s\n", ((const TObjectNode *)node)->eventNotifier);
-        break;
-    case NODECLASS_OBJECTTYPE:
-        //printf("\tparentNodeId: %s\n", ((const TObjectType *)node)->
-        
-        break;
-    case NODECLASS_DATATYPE:
-    //printf("\tparentNodeId: %s\n", ((const TObjectType *)node)->
-    
-        break;
-    case NODECLASS_VARIABLE:
-        //printf("\tparentNodeId: %s\n", ((const TVariableNode *)node)->parentNodeId);
-        //printf("\tdatatype: %s\n", ((const TVariableNode *)node)->datatype);
-        //printf("\tvalueRank: %s\n", ((const TVariableNode *)node)->valueRank);
-        //printf("\tarrayDimensions: %s\n", ((const TVariableNode *)node)->valueRank);
-        break;
-
-    case NODECLASS_METHOD:
-        //printf("\tparentNodeId: %s\n", ((const TVariableNode *)node)->parentNodeId);
-        //printf("\tdatatype: %s\n", ((const TVariableNode *)node)->datatype);
-        //printf("\tvalueRank: %s\n", ((const TVariableNode *)node)->valueRank);
-        //printf("\tarrayDimensions: %s\n", ((const TVariableNode *)node)->valueRank);
-        break;
-    case NODECLASS_REFERENCETYPE:
-        break;
-    }
-    Reference *hierachicalRef = node->hierachicalRefs;
-    while(hierachicalRef)
-    {
-        //printf("\treftype: %s target: %s\n", hierachicalRef->refType, hierachicalRef->target);
-        hierachicalRef = hierachicalRef->next;
-    }
-
-    Reference *nonHierRef = node->nonHierachicalRefs;
-    while (nonHierRef)
-    {
-        //printf("\treftype: %s target: %s\n", nonHierRef->refType, nonHierRef->target);
-        nonHierRef = nonHierRef->next;
-    }
-}
-
 void myCallback(const TNode* node)
 {
     UA_NodeId id = getNodeIdFromChars(node->id);
-    //printf("NodeId: %s BrowseName: %s DisplayName %s\n", node->nodeId, node->browseName,
-    //       node->displayName);
-    //for(size_t i = 0; i < node->references->size; i++) {
-    //    printf("\treftype: %s target: %s\n isForward: %i\n", node->references->refs[i]->refType, node->references->refs[i]->target, node->references->refs[i]->isForward);
-    //}
     switch(node->nodeClass) {
         case NODECLASS_OBJECT:
         {
@@ -306,7 +244,6 @@ void myCallback(const TNode* node)
             }
 
             UA_NodeId refId = getReferenceTypeId(ref);
-           // UA_NodeId typeDefId = getTypeDefinitionIdFromChars2(node);
 
             UA_StatusCode retval = UA_Server_addMethodNode(
                 server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), attr,
@@ -421,7 +358,7 @@ int main(int argc, char** argv) {
      if(argc!=2)
     {
         printf("specify nodesetfile as argument. E.g. xmlLoader text.xml\n");
-        //return -1;
+        return -1;
     }
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
