@@ -176,6 +176,10 @@ UA_NodeId
 getReferenceTarget(const Reference *ref);
 
 UA_NodeId getReferenceTarget(const Reference *ref) {
+    if(ref==NULL)
+    {
+        return UA_NODEID_NULL;
+    }
     return getNodeIdFromChars(ref->target);
 }
 
