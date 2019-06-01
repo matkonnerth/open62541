@@ -250,7 +250,7 @@ void myCallback(const TNode* node)
                 NULL, 0, NULL, 0, NULL, NULL, NULL);
 
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding object node %s failed\n", node->id.idString);
+                printf("adding method node %s failed\n", node->id.idString);
             }
 
             break;
@@ -270,7 +270,7 @@ void myCallback(const TNode* node)
                 NULL, NULL);
 
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding object node %s failed\n", node->id.idString);
+                printf("adding objecttype node %s failed\n", node->id.idString);
             }
 
             break;
@@ -339,7 +339,7 @@ void myCallback(const TNode* node)
                 server, id, parentId, refId, UA_QUALIFIEDNAME(1, node->browseName), attr,
                 NULL, NULL);
             if(retval != UA_STATUSCODE_GOOD) {
-                printf("adding reftype node %s failed\n", node->id.idString);
+                printf("adding datatype node %s failed\n", node->id.idString);
             }
         }
         break;
