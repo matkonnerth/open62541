@@ -1,4 +1,2 @@
-
-add_subdirectory(nodesetLoader)
 add_example(server_import server_import.c)
 target_link_libraries(server_import xmlImport)

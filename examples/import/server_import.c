@@ -6,7 +6,7 @@
 #include <open62541/server_config_default.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <xmlparser.h>
+#include "nodesetLoader.h"
 
 UA_Boolean running = true;
 
@@ -355,10 +355,10 @@ static int addNamespace(const char* namespaceUri)
 
 int main(int argc, char** argv) {
 
-     if(argc!=2)
+    if(argc<2)
     {
-        printf("specify nodesetfile as argument. E.g. xmlLoader text.xml\n");
-        return -1;
+        printf("specify nodesetfile as argument. E.g. server_import text.xml\n");
+        return EXIT_FAILURE;
     }
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
@@ -368,11 +368,8 @@ int main(int argc, char** argv) {
 
     UA_StatusCode retval;
 
+
     FileHandler handler;
-    //handler.file = "/home/matzy/git/open62541/examples/import/system.txt";
-    //handler.file = "/mnt/c/c2k/git/mkOpen62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
-    //handler.file = "/home/matzy/git/open62541/deps/ua-nodeset/DI/Opc.Ua.Di.NodeSet2.xml";
-    //handler.file = "/home/matzy/opcua/sdk/bin/testNodeset.xml";
     handler.file = argv[1];
     handler.callback = myCallback;
     handler.addNamespace = addNamespace;
@@ -383,9 +380,7 @@ int main(int argc, char** argv) {
         loadFile(&handler);
     }
 
-
     retval = UA_Server_run(server, &running);
-
     UA_Server_delete(server);
     return retval == UA_STATUSCODE_GOOD ? EXIT_SUCCESS : EXIT_FAILURE;
 }

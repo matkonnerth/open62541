@@ -55,6 +55,9 @@ endif()
 # Build Options #
 #################
 
+#xml import
+add_subdirectory(nodesetLoader)
+
 # Set default build type.
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "CMAKE_BUILD_TYPE not given; setting to 'Debug'")
