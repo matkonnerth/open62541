@@ -377,7 +377,11 @@ int main(int argc, char** argv) {
     for(int cnt = 1; cnt < argc; cnt++)
     {
         handler.file = argv[cnt];
-        loadFile(&handler);
+        if(!loadFile(&handler))
+        {
+            printf("nodeset could not be loaded, exit\n");
+            return EXIT_FAILURE;
+        }
     }
 
     retval = UA_Server_run(server, &running);
