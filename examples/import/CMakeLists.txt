@@ -1,2 +1,2 @@
-add_example(server_import server_import.c)
+add_example(server_import server_import.c import.c)
 target_link_libraries(server_import xmlImport)
