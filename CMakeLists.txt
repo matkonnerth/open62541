@@ -337,7 +337,7 @@ mark_as_advanced(UA_BUILD_FUZZING_CORPUS)
 if(UA_BUILD_FUZZING_CORPUS)
     add_definitions(-DUA_DEBUG_DUMP_PKGS_FILE)
     set(UA_ENABLE_TYPENAMES ON CACHE STRING "" FORCE)
-    set(UA_DEBUG_DUMP_PKGS ON CACHE STRING "" FORCE)
+    #set(UA_DEBUG_DUMP_PKGS ON CACHE STRING "" FORCE)
 endif()
 
 option(UA_BUILD_OSS_FUZZ "Special build switch used in oss-fuzz" OFF)
@@ -630,11 +630,12 @@ set(lib_sources ${PROJECT_SOURCE_DIR}/src/ua_types.c
                 ${PROJECT_SOURCE_DIR}/src/pubsub/ua_pubsub_ns0.c
                 # services
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_view.c
-                ${PROJECT_SOURCE_DIR}/src/server/ua_services_call.c
+                ${PROJECT_SOURCE_DIR}/src/server/ua_services_method.c
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_session.c
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_attribute.c
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_discovery.c
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_subscription.c
+                ${PROJECT_SOURCE_DIR}/src/server/ua_services_monitoreditem.c
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_securechannel.c
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_nodemanagement.c
                 ${PROJECT_SOURCE_DIR}/src/server/ua_services_discovery_multicast.c

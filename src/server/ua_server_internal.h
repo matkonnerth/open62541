@@ -9,6 +9,7 @@
  *    Copyright 2015-2016 (c) Oleksiy Vasylyev
  *    Copyright 2016-2017 (c) Stefan Profanter, fortiss GmbH
  *    Copyright 2017 (c) Julian Grothoff
+ *    Copyright 2019 (c) Kalycito Infotech Private Limited
  */
 
 #ifndef UA_SERVER_INTERNAL_H_
@@ -135,6 +136,7 @@ UA_StatusCode UA_Server_editNode(UA_Server *server, UA_Session *session,
 extern const UA_NodeId subtypeId;
 extern const UA_NodeId hierarchicalReferences;
 
+void setupNs1Uri(UA_Server *server);
 UA_UInt16 addNamespace(UA_Server *server, const UA_String name);
 
 UA_Boolean
@@ -146,26 +148,19 @@ isNodeInTree(void *nsCtx, const UA_NodeId *leafNode,
              const UA_NodeId *nodeToFind, const UA_NodeId *referenceTypeIds,
              size_t referenceTypeIdsSize);
 
-/* Returns an array with the hierarchy of type nodes. The returned array starts
- * at the leaf and continues "upwards" or "downwards" in the hierarchy based on the
- * ``hasSubType`` references. Since multiple-inheritance is possible in general,
- * duplicate entries are removed.
- * The parameter `walkDownwards` indicates the direction of search.
- * If set to TRUE it will get all the subtypes of the given
- * leafType (including leafType).
- * If set to FALSE it will get all the parent types of the given
- * leafType (including leafType)*/
+/* Returns an array with the hierarchy of nodes. The start nodes are returned as
+ * well. The returned array starts at the leaf and continues "upwards" or
+ * "downwards". Duplicate entries are removed. The parameter `walkDownwards`
+ * indicates the direction of search. */
 UA_StatusCode
-getTypeHierarchy(void *nsCtx, const UA_NodeId *leafType,
-                 UA_NodeId **typeHierarchy, size_t *typeHierarchySize,
-                 UA_Boolean walkDownwards);
+getLocalRecursiveHierarchy(UA_Server *server, const UA_NodeId *startNodes, size_t startNodesSize,
+                           const UA_NodeId *refTypes, size_t refTypesSize, UA_Boolean walkDownwards,
+                           UA_NodeId **results, size_t *resultsSize);
 
-/* Same as getTypeHierarchy but takes multiple leafTypes as parameter and returns
- * an combined list of all the found types for all the leaf types */
+/* Returns the recursive type and interface hierarchy of the node */ 
 UA_StatusCode
-getTypesHierarchy(void *nsCtx, const UA_NodeId *leafType, size_t leafTypeSize,
-                  UA_NodeId **typeHierarchy, size_t *typeHierarchySize,
-                  UA_Boolean walkDownwards);
+getParentTypeAndInterfaceHierarchy(UA_Server *server, const UA_NodeId *typeNode,
+                                   UA_NodeId **typeHierarchy, size_t *typeHierarchySize);
 
 /* Returns the type node from the node on the stack top. The type node is pushed
  * on the stack and returned. */
@@ -180,14 +175,14 @@ UA_Server_writeWithSession(UA_Server *server, UA_Session *session,
 /* Many services come as an array of operations. This function generalizes the
  * processing of the operations. */
 typedef void (*UA_ServiceOperation)(UA_Server *server, UA_Session *session,
-                                    void *context,
+                                    const void *context,
                                     const void *requestOperation,
                                     void *responseOperation);
 
 UA_StatusCode
 UA_Server_processServiceOperations(UA_Server *server, UA_Session *session,
                                    UA_ServiceOperation operationCallback,
-                                   void *context,
+                                   const void *context,
                                    const size_t *requestOperations,
                                    const UA_DataType *requestOperationsType,
                                    size_t *responseOperations,
@@ -244,8 +239,13 @@ compatibleDataType(UA_Server *server, const UA_NodeId *dataType,
 UA_Boolean
 compatibleValueRanks(UA_Int32 valueRank, UA_Int32 constraintValueRank);
 
+struct BrowseOpts {
+    UA_UInt32 maxReferences;
+    UA_Boolean recursive;
+};
+
 void
-Operation_Browse(UA_Server *server, UA_Session *session, const UA_UInt32 *maxrefs,
+Operation_Browse(UA_Server *server, UA_Session *session, const struct BrowseOpts *maxrefs,
                  const UA_BrowseDescription *descr, UA_BrowseResult *result);
 
 UA_DataValue
@@ -277,6 +277,9 @@ AddNode_finish(UA_Server *server, UA_Session *session, const UA_NodeId *nodeId);
 /**********************/
 
 UA_StatusCode UA_Server_initNS0(UA_Server *server);
+
+UA_StatusCode writeNs0VariableArray(UA_Server *server, UA_UInt32 id, void *v,
+                      size_t length, const UA_DataType *type);
 
 _UA_END_DECLS
 
