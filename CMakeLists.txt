@@ -106,6 +106,8 @@ GET_PROPERTY(ua_architecture_sources GLOBAL PROPERTY UA_ARCHITECTURE_SOURCES)
 
 set(ua_architecture_sources ${ua_architecture_sources}
     ${PROJECT_SOURCE_DIR}/arch/network_tcp.c
+    #should be compiled only if needed
+    ${PROJECT_SOURCE_DIR}/arch/network_ws.c
 )
 
 set(ua_architecture_headers ${ua_architecture_headers}
@@ -142,6 +144,7 @@ option(UA_ENABLE_QUERY "Enable query support." OFF)
 option(UA_ENABLE_COVERAGE "Enable gcov coverage" OFF)
 option(UA_ENABLE_ENCRYPTION "Enable encryption support (uses mbedTLS)" OFF)
 option(BUILD_SHARED_LIBS "Enable building of shared libraries (dll/so)" OFF)
+option(UA_ENABLE_WEBSOCKET_SERVER "Enable websocket support (uses libwebsockets)" OFF)
 
 # Namespace Zero
 set(UA_NAMESPACE_ZERO "REDUCED" CACHE STRING "Completeness of the generated namespace zero (minimal/reduced/full)")
@@ -382,6 +385,11 @@ if(UA_ENABLE_ENCRYPTION)
     # defined in /tools/cmake/FindMbedTLS.cmake.
     find_package(MbedTLS REQUIRED)
     list(APPEND open62541_LIBRARIES ${MBEDTLS_LIBRARIES})
+endif()
+
+if(UA_ENABLE_WEBSOCKET_SERVER)
+    find_package(libwebsockets REQUIRED)
+    list(APPEND open62541_LIBRARIES ${LIBWEBSOCKETS_LIBRARIES})
 endif()
 
 #####################
