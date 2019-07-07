@@ -393,7 +393,7 @@ UA_ServerConfig_setMinimalCustomBuffer(UA_ServerConfig *config, UA_UInt16 portNu
         return retval;
     }
 
-    retval = UA_ServerConfig_addNetworkLayerWS(config, portNumber, sendBufferSize, recvBufferSize);
+    retval = UA_ServerConfig_addNetworkLayerWS(config, 7681, sendBufferSize, recvBufferSize);
     if(retval != UA_STATUSCODE_GOOD) {
         UA_ServerConfig_clean(config);
         return retval;
