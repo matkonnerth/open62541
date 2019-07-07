@@ -19,9 +19,6 @@
 #include "open62541_queue.h"
 
 #include <string.h>  // memset
-#ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL 0
-#endif
 
 /* one of these created for each message */
 
@@ -54,20 +51,6 @@ struct per_vhost_data__minimal {
 	struct msg amsg; /* the one pending message... */
 	int current; /* the current message number we are caching */
 };
-
-/* destroys the message when everyone has had a copy of it */
-
-/* 
-static void
-__minimal_destroy_message(void *_msg)
-{
-	struct msg *msg = (struct msg*) _msg;
-
-	free(msg->payload);
-	msg->payload = NULL;
-	msg->len = 0;
-}
-*/
 
 static UA_StatusCode
 connection_getsendbuffer(UA_Connection *connection,
@@ -108,8 +91,6 @@ static void
 ServerNetworkLayerWS_close(UA_Connection *connection) {
     if (connection->state == UA_CONNECTION_CLOSED)
         return;
-    //UA_shutdown((UA_SOCKET)connection->sockfd, 2);
-    //close connection in here
     connection->state = UA_CONNECTION_CLOSED;
 }
 
@@ -182,7 +163,7 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
 		break;
 
 
-    /**< data has appeared for this server endpoint from a
+    /* data has appeared for this server endpoint from a
 	 * remote client, it can be found at *in and is
 	 * len bytes long */
 	case LWS_CALLBACK_RECEIVE:
@@ -289,8 +270,6 @@ typedef struct ConnectionEntry {
 typedef struct {
     const UA_Logger *logger;
     UA_UInt16 port;
-    UA_SOCKET serverSockets[FD_SETSIZE];
-    UA_UInt16 serverSocketsSize;
     struct lws_context *context;
     LIST_HEAD(, ConnectionEntry) connections;    
 } ServerNetworkLayerWS;
@@ -342,13 +321,10 @@ ServerNetworkLayerWS_start(UA_ServerNetworkLayer *nl, const UA_String *customHos
 	info.protocols = protocols;
 	info.vhost_name = "localhost";
 	info.ws_ping_pong_interval = 10;
-	//info.options = LWS_SERVER_OPTION_HTTP_HEADERS_SECURITY_BEST_PRACTICES_ENFORCE;
+	info.options = LWS_SERVER_OPTION_HTTP_HEADERS_SECURITY_BEST_PRACTICES_ENFORCE;
     info.pvo = &pvo;
 
-        // is this the only option??
-        // info.user = malloc(sizeof(UA_Server *));
-
-        context = lws_create_context(&info);
+    context = lws_create_context(&info);
 	if (!context) 
     {
 		lwsl_err("lws init failed\n");
@@ -356,8 +332,6 @@ ServerNetworkLayerWS_start(UA_ServerNetworkLayer *nl, const UA_String *customHos
     }
 
     layer->context = context;
-
-    // 
     return UA_STATUSCODE_GOOD;
 }
 
