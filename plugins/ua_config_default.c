@@ -13,6 +13,7 @@
 
 #include <open62541/client_config_default.h>
 #include <open62541/network_tcp.h>
+#include <open62541/network_ws.h>
 #include <open62541/plugin/accesscontrol_default.h>
 #include <open62541/plugin/log_stdout.h>
 #include <open62541/plugin/pki_default.h>
@@ -224,6 +225,31 @@ addDefaultNetworkLayers(UA_ServerConfig *conf, UA_UInt16 portNumber,
     return UA_ServerConfig_addNetworkLayerTCP(conf, portNumber, sendBufferSize, recvBufferSize);
 }
 
+static UA_StatusCode
+UA_ServerConfig_addNetworkLayerWS(UA_ServerConfig *conf, UA_UInt16 portNumber,
+                                   UA_UInt32 sendBufferSize, UA_UInt32 recvBufferSize) {
+    /* Add a network layer */
+    UA_ServerNetworkLayer *tmp = (UA_ServerNetworkLayer *)
+        UA_realloc(conf->networkLayers, sizeof(UA_ServerNetworkLayer) * (1 + conf->networkLayersSize));
+    if(!tmp)
+        return UA_STATUSCODE_BADOUTOFMEMORY;
+    conf->networkLayers = tmp;
+
+    UA_ConnectionConfig config = UA_ConnectionConfig_default;
+    if (sendBufferSize > 0)
+        config.sendBufferSize = sendBufferSize;
+    if (recvBufferSize > 0)
+        config.recvBufferSize = recvBufferSize;
+
+    conf->networkLayers[conf->networkLayersSize] =
+        UA_ServerNetworkLayerWS(config, portNumber, &conf->logger);
+    if (!conf->networkLayers[conf->networkLayersSize].handle)
+        return UA_STATUSCODE_BADOUTOFMEMORY;
+    conf->networkLayersSize++;
+
+    return UA_STATUSCODE_GOOD;
+}
+
 UA_EXPORT UA_StatusCode
 UA_ServerConfig_addNetworkLayerTCP(UA_ServerConfig *conf, UA_UInt16 portNumber,
                                    UA_UInt32 sendBufferSize, UA_UInt32 recvBufferSize) {
@@ -362,6 +388,12 @@ UA_ServerConfig_setMinimalCustomBuffer(UA_ServerConfig *config, UA_UInt16 portNu
     }
 
     retval = addDefaultNetworkLayers(config, portNumber, sendBufferSize, recvBufferSize);
+    if(retval != UA_STATUSCODE_GOOD) {
+        UA_ServerConfig_clean(config);
+        return retval;
+    }
+
+    retval = UA_ServerConfig_addNetworkLayerWS(config, 7681, sendBufferSize, recvBufferSize);
     if(retval != UA_STATUSCODE_GOOD) {
         UA_ServerConfig_clean(config);
         return retval;
