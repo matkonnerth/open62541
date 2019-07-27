@@ -207,6 +207,12 @@ endif()
 option(UA_ENABLE_CUSTOM_NODESTORE "Do not compile the default Nodestore implementation into the library" OFF)
 mark_as_advanced(UA_ENABLE_CUSTOM_NODESTORE)
 
+option(UA_ENABLE_NODESTORE_SWITCH "Plugin nodestore switch for dynamic handling of nodestores. UA_ENABLE_CUSTOM_NODESTORE has to be defined." OFF)
+mark_as_advanced(UA_ENABLE_NODESTORE_SWITCH)
+
+option(UA_ENABLE_NODESTORE_XML "Plugin nodestore with support for loading xml nodeset" OFF)
+mark_as_advanced(UA_ENABLE_NODESTORE_SWITCH)
+
 option(UA_ENABLE_PUBSUB "Enable publish/subscribe" OFF)
 mark_as_advanced(UA_ENABLE_PUBSUB)
 
@@ -391,6 +397,10 @@ if(UA_ENABLE_ENCRYPTION)
     list(APPEND open62541_LIBRARIES ${MBEDTLS_LIBRARIES})
 endif()
 
+if(UA_ENABLE_NODESTORE_XML)
+    find_package(LibXml2 REQUIRED)
+    list(APPEND open62541_LIBRARIES ${LIBXML2_LIBRARIES})
+endif()
 if(UA_ENABLE_WEBSOCKET_SERVER)
     # The recommended way is to install libwebsockets via the OS package manager. If
     # that is not possible, manually compile libwebsockets and set the cmake variables
@@ -670,6 +680,7 @@ set(default_plugin_headers ${PROJECT_SOURCE_DIR}/plugins/include/open62541/plugi
                            ${PROJECT_SOURCE_DIR}/plugins/include/open62541/server_config_default.h
                            ${PROJECT_SOURCE_DIR}/plugins/include/open62541/client_config_default.h
                            ${PROJECT_SOURCE_DIR}/plugins/include/open62541/plugin/securitypolicy_default.h
+                           ${PROJECT_SOURCE_DIR}/plugins/include/open62541/plugin/nodestore_default.h
 )
 
 set(default_plugin_sources ${PROJECT_SOURCE_DIR}/plugins/ua_log_stdout.c
@@ -778,6 +789,28 @@ if(UA_BUILD_FUZZING OR UA_BUILD_OSS_FUZZ)
         ${lib_sources}
         ${PROJECT_SOURCE_DIR}/tests/fuzz/custom_memory_manager.c)
 endif()
+
+if(UA_ENABLE_NODESTORE_SWITCH)
+    list(APPEND default_plugin_headers
+         ${PROJECT_SOURCE_DIR}/plugins/include/open62541/plugin/nodestore_switch.h
+         )
+    list(APPEND default_plugin_sources
+         ${PROJECT_SOURCE_DIR}/plugins/ua_nodestore_switch.c
+         )
+endif()
+
+if(UA_ENABLE_NODESTORE_XML)
+    list(APPEND default_plugin_headers
+         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodeset.h
+         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/memory.h
+         )
+    list(APPEND default_plugin_sources
+         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodeset.c
+         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/memory.c
+         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodesetLoader.c
+         )
+endif()
+
 
 #########################
 # Generate source files #
@@ -1035,6 +1068,10 @@ else()
     # Option-specific includes
     if(UA_ENABLE_DISCOVERY)
         include_directories_private("${PROJECT_SOURCE_DIR}/src/client")
+    endif()
+
+    if(UA_ENABLE_NODESTORE_XML)
+        include_directories_private(${LIBXML2_INCLUDE_DIR})
     endif()
 
 endif()
