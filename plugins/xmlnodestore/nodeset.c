@@ -374,7 +374,7 @@ static void initNode(Nodeset* nodeset, TNamespace *namespaces, UA_Node *node,
 UA_Node *Nodeset_newNode(Nodeset* nodeset, TNodeClass nodeClass, int nb_attributes, const char **attributes) 
 {
     UA_Node *newNode =
-        UA_Nodestore_newNode(nodeset->server->nsCtx, UA_NODECLASSES[nodeClass]);
+        UA_Nodestore_newNode(UA_Server_getNsCtx(nodeset->server), UA_NODECLASSES[nodeClass]);
     initNode(nodeset, nodeset->namespaceTable->ns, newNode,
                                   nb_attributes, attributes);
 
@@ -547,7 +547,7 @@ void Nodeset_newNodeFinish(Nodeset* nodeset, UA_Node* node)
         ref->src = &node->nodeId;
     }
 
-    UA_Nodestore_releaseNode(nodeset->server->nsCtx, node);
+    UA_Nodestore_releaseNode(UA_Server_getNsCtx(nodeset->server), node);
 }
 
 void Nodeset_newReferenceFinish(Nodeset* nodeset, UA_NodeReferenceKind* ref, char* targetId)

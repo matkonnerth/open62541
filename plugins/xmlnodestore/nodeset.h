@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <open62541/plugin/nodestore.h>
+#include "nodesetLoader.h"
 
 typedef enum {
     NODECLASS_OBJECT = 0,

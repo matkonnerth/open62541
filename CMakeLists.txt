@@ -803,6 +803,7 @@ if(UA_ENABLE_NODESTORE_XML)
     list(APPEND default_plugin_headers
          ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodeset.h
          ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/memory.h
+         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodesetLoader.h
          )
     list(APPEND default_plugin_sources
          ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodeset.c
