@@ -91,7 +91,6 @@ typedef struct
 struct Nodeset {
     char **countedChars;
     Alias **aliasArray;
-    NodeContainer *nodes;
     size_t aliasSize;
     size_t charsSize;    
     TNamespaceTable *namespaceTable;
@@ -191,22 +190,7 @@ Nodeset* Nodeset_new(UA_Server* server) {
     nodeset->aliasSize = 0;
     nodeset->countedChars = (char **)malloc(sizeof(char *) * MAX_REFCOUNTEDCHARS);
     nodeset->charsSize = 0;
-    // mem pools
-    nodeset->nodes = (NodeContainer *)malloc(sizeof(NodeContainer)*NODECLASS_COUNT);
-    nodeset->nodes[NODECLASS_OBJECT].nodePool =
-    MemoryPool_init(sizeof(UA_ObjectNode), 1000);
-    nodeset->nodes[NODECLASS_VARIABLE].nodePool = MemoryPool_init(sizeof(UA_VariableNode),
-    1000);   
-    nodeset->nodes[NODECLASS_METHOD].nodePool = MemoryPool_init(sizeof(UA_MethodNode),
-    1000);   
-    nodeset->nodes[NODECLASS_OBJECTTYPE].nodePool = MemoryPool_init(sizeof(UA_ObjectTypeNode),
-    1000);
-    nodeset->nodes[NODECLASS_VARIABLETYPE].nodePool = MemoryPool_init(sizeof(UA_VariableTypeNode),
-    1000);
-    nodeset->nodes[NODECLASS_REFERENCETYPE].nodePool = MemoryPool_init(sizeof(UA_ReferenceTypeNode),
-    1000);
-    nodeset->nodes[NODECLASS_DATATYPE].nodePool = MemoryPool_init(sizeof(UA_DataTypeNode),
-    1000);
+    
     nodeset->hierachicalRefs = hierachicalRefs;
     nodeset->hierachicalRefsSize = 7;
     nodeset->refPool = MemoryPool_init(sizeof(TRef), 1000);
@@ -235,18 +219,6 @@ void Nodeset_cleanup(Nodeset* nodeset) {
     }
     free(nodeset->countedChars);
 }
-
-
-static bool isHierachicalReference(Nodeset* nodeset, const UA_NodeId *refId) {
-    for(size_t i = 0; i < nodeset->hierachicalRefsSize; i++) {
-        if(UA_NodeId_equal(&nodeset->hierachicalRefs[i], refId))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
 
 static char *getAttributeValue(Nodeset* nodeset, NodeAttribute *attr, const char **attributes,
                                int nb_attributes) {
@@ -431,15 +403,24 @@ struct NodesetServer
     UA_Server *server;
 };
 
+static bool isHierachicalReference(Nodeset* nodeset, const UA_NodeId *refId) {
+    for(size_t i = 0; i < nodeset->hierachicalRefsSize; i++) {
+        if(UA_NodeId_equal(&nodeset->hierachicalRefs[i], refId))
+        {
+            return true; 
+        }
+    }
+    return false;
+}
+
 static void addReference(void* ref, void* userData)
 {
-    TRef *tref = (TRef *)ref;
-
-    
+    TRef *tref = (TRef *)ref;    
     struct NodesetServer *data = (struct NodesetServer *)userData;
     Nodeset *ns = data->nodeset;
 
-    if(isHierachicalReference(ns, &tref->ref->referenceTypeId)) {
+    //we insert the inverse reference only if its an hierachical reference and make this call only if we need to go to another namespaceindex
+    if(isHierachicalReference(ns, &tref->ref->referenceTypeId) && tref->ref->targetIds[0].nodeId.namespaceIndex != tref->src->namespaceIndex) {
         for(size_t cnt = 0; cnt < tref->ref->targetIdsSize; cnt++) {
             // try it with server
             UA_ExpandedNodeId eId;
@@ -544,10 +525,14 @@ void Nodeset_newNodeFinish(Nodeset* nodeset, UA_Node* node)
                sizeof(UA_ExpandedNodeId) * node->references[cnt].targetIdsSize);
         UA_NodeId_copy(&node->references[cnt].referenceTypeId, &copyRef->referenceTypeId);
         ref->ref = copyRef;
-        ref->src = &node->nodeId;
+        ref->src = UA_NodeId_new();
+        UA_NodeId_copy(&node->nodeId, ref->src);
     }
 
-    UA_Nodestore_releaseNode(UA_Server_getNsCtx(nodeset->server), node);
+    UA_Nodestore_insertNode(UA_Server_getNsCtx(nodeset->server), node, NULL);
+
+    const UA_Node* nodeFromStore =UA_Nodestore_getNode(UA_Server_getNsCtx(nodeset->server), &node->nodeId);
+    UA_Nodestore_releaseNode(UA_Server_getNsCtx(nodeset->server), nodeFromStore);
 }
 
 void Nodeset_newReferenceFinish(Nodeset* nodeset, UA_NodeReferenceKind* ref, char* targetId)

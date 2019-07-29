@@ -9,6 +9,7 @@
 #include <libxml/SAX.h>
 #include <stdio.h>
 #include <string.h>
+#include <open62541/plugin/nodesetLoader.h>
 #include "nodeset.h"
 
 
@@ -271,7 +272,7 @@ static int read_xmlfile(FILE *f, TParserCtx *parserCtxt) {
     return 0;
 }
 
-UA_StatusCode UA_Nodestore_Xml_load(Nodeset* nodeset, const FileHandler *fileHandler) {
+UA_StatusCode UA_Nodestore_Xml_load(const FileHandler *fileHandler) {
 
     if(fileHandler == NULL) {
         printf("no filehandler - return\n");
@@ -288,10 +289,10 @@ UA_StatusCode UA_Nodestore_Xml_load(Nodeset* nodeset, const FileHandler *fileHan
     ctx->prev_state = PARSER_STATE_INIT;
     ctx->unknown_depth = 0;
     ctx->onCharacters = NULL;
-    ctx->userContext = fileHandler->userContext;
-    ctx->nodeset = nodeset;
+    ctx->userContext = fileHandler->userContext;    
+    ctx->nodeset = Nodeset_new((UA_Server *)fileHandler->userContext);
 
-    Nodeset_setNewNamespaceCallback(nodeset, fileHandler->addNamespace);
+    Nodeset_setNewNamespaceCallback(ctx->nodeset, fileHandler->addNamespace);
 
     FILE *f = fopen(fileHandler->file, "r");
     if(!f) {
@@ -305,10 +306,10 @@ UA_StatusCode UA_Nodestore_Xml_load(Nodeset* nodeset, const FileHandler *fileHan
         status = UA_STATUSCODE_BADNOTFOUND;
     }
 
-    Nodeset_linkReferences(nodeset, (UA_Server *)fileHandler->userContext);
+    Nodeset_linkReferences(ctx->nodeset, (UA_Server *)fileHandler->userContext);
 
 cleanup:
-    Nodeset_cleanup(nodeset);
+    Nodeset_cleanup(ctx->nodeset);
     free(ctx);
     fclose(f);
     return status;
