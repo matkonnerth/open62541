@@ -17,7 +17,6 @@
 #include <open62541/plugin/log_stdout.h>
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
-#include <open62541/plugin/nodesetLoader.h>
 
 #include <signal.h>
 #include <stdlib.h>
@@ -117,8 +116,6 @@ int main(void) {
 #ifdef UA_ENABLE_WEBSOCKET_SERVER
     UA_ServerConfig_addNetworkLayerWS(UA_Server_getConfig(server), 7681, 0, 0);
 #endif
-
-    UA_Server_
 
     addVariable(server);
     writeVariable(server);

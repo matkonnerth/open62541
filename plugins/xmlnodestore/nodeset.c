@@ -420,7 +420,7 @@ static void addReference(void* ref, void* userData)
     Nodeset *ns = data->nodeset;
 
     //we insert the inverse reference only if its an hierachical reference and make this call only if we need to go to another namespaceindex
-    if(isHierachicalReference(ns, &tref->ref->referenceTypeId) && tref->ref->targetIds[0].nodeId.namespaceIndex != tref->src->namespaceIndex) {
+    if(isHierachicalReference(ns, &tref->ref->referenceTypeId)) {
         for(size_t cnt = 0; cnt < tref->ref->targetIdsSize; cnt++) {
             // try it with server
             UA_ExpandedNodeId eId;
@@ -530,9 +530,6 @@ void Nodeset_newNodeFinish(Nodeset* nodeset, UA_Node* node)
     }
 
     UA_Nodestore_insertNode(UA_Server_getNsCtx(nodeset->server), node, NULL);
-
-    const UA_Node* nodeFromStore =UA_Nodestore_getNode(UA_Server_getNsCtx(nodeset->server), &node->nodeId);
-    UA_Nodestore_releaseNode(UA_Server_getNsCtx(nodeset->server), nodeFromStore);
 }
 
 void Nodeset_newReferenceFinish(Nodeset* nodeset, UA_NodeReferenceKind* ref, char* targetId)
