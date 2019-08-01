@@ -339,3 +339,6 @@ endif()
 
 # Tests for Nodeset Compiler
 add_subdirectory(nodeset-compiler)
+
+# Tests for Nodeset import
+add_subdirectory(nodeset-import)

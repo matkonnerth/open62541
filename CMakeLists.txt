@@ -795,14 +795,14 @@ endif()
 
 if(UA_ENABLE_XML_IMPORT)
     list(APPEND default_plugin_headers
-         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodeset.h
-         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/memory.h
-         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodesetLoader.h
+         ${PROJECT_SOURCE_DIR}/plugins/xmlimport/nodeset.h
+         ${PROJECT_SOURCE_DIR}/plugins/xmlimport/memory.h
+         ${PROJECT_SOURCE_DIR}/plugins/xmlimport/nodesetLoader.h
          )
     list(APPEND default_plugin_sources
-         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodeset.c
-         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/memory.c
-         ${PROJECT_SOURCE_DIR}/plugins/xmlnodestore/nodesetLoader.c
+         ${PROJECT_SOURCE_DIR}/plugins/xmlimport/nodeset.c
+         ${PROJECT_SOURCE_DIR}/plugins/xmlimport/memory.c
+         ${PROJECT_SOURCE_DIR}/plugins/xmlimport/nodesetLoader.c
          )
 endif()
 
