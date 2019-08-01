@@ -18,6 +18,8 @@
 
 #include "common.h"
 
+#define MAX_OPERATION_LIMIT 10000
+
 /* This server is configured to the Compliance Testing Tools (CTT) against. The
  * corresponding CTT configuration is available at
  * https://github.com/open62541/open62541-ctt */
@@ -570,6 +572,7 @@ usage(void) {
                    "\t[--revocationlist <rv1.crl> <rv2.crl> ...]\n"
                    "\t[--enableUnencrypted]\n"
                    "\t[--enableOutdatedSecurityPolicy]\n"
+                   "\t[--enableTimestampCheck]\n"
 #endif
                    "\t[--enableAnonymous]\n");
 }
@@ -624,6 +627,7 @@ int main(int argc, char **argv) {
     char filetype = ' '; /* t==trustlist, l == issuerList, r==revocationlist */
     UA_Boolean enableUnencr = false;
     UA_Boolean enableSec = false;
+    UA_Boolean enableTime = false;
 
 #endif
 
@@ -645,6 +649,11 @@ int main(int argc, char **argv) {
 
         if(strcmp(argv[pos], "--enableOutdatedSecurityPolicy") == 0) {
             enableSec = true;
+            continue;
+        }
+
+        if(strcmp(argv[pos], "--enableTimestampCheck") == 0) {
+            enableTime = true;
             continue;
         }
 
@@ -727,6 +736,22 @@ int main(int argc, char **argv) {
     if(!enableSec)
         disableOutdatedSecurityPolicy(&config);
 
+    /* Set operation limits */
+    config.maxNodesPerRead = MAX_OPERATION_LIMIT;
+    config.maxNodesPerWrite = MAX_OPERATION_LIMIT;
+    config.maxNodesPerMethodCall = MAX_OPERATION_LIMIT;
+    config.maxNodesPerBrowse = MAX_OPERATION_LIMIT;
+    config.maxNodesPerRegisterNodes = MAX_OPERATION_LIMIT;
+    config.maxNodesPerTranslateBrowsePathsToNodeIds = MAX_OPERATION_LIMIT;
+    config.maxNodesPerNodeManagement = MAX_OPERATION_LIMIT;
+    config.maxMonitoredItemsPerCall = MAX_OPERATION_LIMIT;
+
+    /* If RequestTimestamp is '0', log the warning and proceed */
+    config.verifyRequestTimestamp = UA_RULEHANDLING_WARN;
+
+    if(enableTime)
+        config.verifyRequestTimestamp = UA_RULEHANDLING_DEFAULT;
+
 #else
     UA_ServerConfig_setMinimal(&config, 4840, &certificate);
 #endif
@@ -751,6 +776,8 @@ int main(int argc, char **argv) {
     UA_String_clear(&config.applicationDescription.applicationUri);
     config.applicationDescription.applicationUri =
         UA_String_fromChars("urn:open62541.server.application");
+
+    config.shutdownDelay = 5000.0; /* 5s */
 
     UA_Server *server = UA_Server_newWithConfig(&config);
     if(server == NULL)

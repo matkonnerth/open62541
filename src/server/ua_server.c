@@ -295,6 +295,19 @@ UA_Server_newWithConfig(const UA_ServerConfig *config) {
     return UA_Server_init(server);
 }
 
+/* Returns if the server should be shut down immediately */
+static UA_Boolean
+setServerShutdown(UA_Server *server) {
+    if(server->endTime != 0)
+        return false;
+    if(server->config.shutdownDelay == 0)
+        return true;
+    UA_LOG_WARNING(&server->config.logger, UA_LOGCATEGORY_SERVER,
+                   "Shutting down the server with a delay of %i ms", (int)server->config.shutdownDelay);
+    server->endTime = UA_DateTime_now() + (UA_DateTime)(server->config.shutdownDelay * UA_DATETIME_MSEC);
+    return false;
+}
+
 /*******************/
 /* Timed Callbacks */
 /*******************/
@@ -585,6 +598,13 @@ UA_Server_run_shutdown(UA_Server *server) {
     return UA_STATUSCODE_GOOD;
 }
 
+static UA_Boolean
+testShutdownCondition(UA_Server *server) {
+    if(server->endTime == 0)
+        return false;
+    return (UA_DateTime_now() > server->endTime);
+}
+
 UA_StatusCode
 UA_Server_run(UA_Server *server, const volatile UA_Boolean *running) {
     UA_StatusCode retval = UA_Server_run_startup(server);
@@ -593,7 +613,7 @@ UA_Server_run(UA_Server *server, const volatile UA_Boolean *running) {
 #ifdef UA_ENABLE_VALGRIND_INTERACTIVE
     size_t loopCount = 0;
 #endif
-    while(*running) {
+    while(!testShutdownCondition(server)) {
 #ifdef UA_ENABLE_VALGRIND_INTERACTIVE
         if(loopCount == 0) {
             VALGRIND_DO_LEAK_CHECK;
@@ -602,6 +622,10 @@ UA_Server_run(UA_Server *server, const volatile UA_Boolean *running) {
         loopCount %= UA_VALGRIND_INTERACTIVE_INTERVAL;
 #endif
         UA_Server_run_iterate(server, true);
+        if(!*running) {
+            if(setServerShutdown(server))
+                break;
+        }
     }
     return UA_Server_run_shutdown(server);
 }

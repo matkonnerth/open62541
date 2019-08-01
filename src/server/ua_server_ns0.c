@@ -279,14 +279,44 @@ readStatus(UA_Server *server, const UA_NodeId *sessionId, void *sessionContext,
     UA_assert(nodeId->identifierType == UA_NODEIDTYPE_NUMERIC);
 
     switch(nodeId->identifier.numeric) {
+    case UA_NS0ID_SERVER_SERVERSTATUS_SECONDSTILLSHUTDOWN: {
+        UA_UInt32 *shutdown = UA_UInt32_new();
+        if(!shutdown)
+            return UA_STATUSCODE_BADOUTOFMEMORY;
+        if(server->endTime != 0)
+            *shutdown = (UA_UInt32)((server->endTime - UA_DateTime_now()) / UA_DATETIME_SEC);
+        value->value.data = shutdown;
+        value->value.type = &UA_TYPES[UA_TYPES_UINT32];
+        value->hasValue = true;
+        return UA_STATUSCODE_GOOD;
+    }
+
+    case UA_NS0ID_SERVER_SERVERSTATUS_STATE: {
+        UA_ServerState *state = UA_ServerState_new();
+        if(!state)
+            return UA_STATUSCODE_BADOUTOFMEMORY;
+        if(server->endTime != 0)
+            *state = UA_SERVERSTATE_SHUTDOWN;
+        value->value.data = state;
+        value->value.type = &UA_TYPES[UA_TYPES_SERVERSTATE];
+        value->hasValue = true;
+        return UA_STATUSCODE_GOOD;
+    }
+
     case UA_NS0ID_SERVER_SERVERSTATUS: {
         UA_ServerStatusDataType *statustype = UA_ServerStatusDataType_new();
         if(!statustype)
             return UA_STATUSCODE_BADOUTOFMEMORY;
         statustype->startTime = server->startTime;
         statustype->currentTime = UA_DateTime_now();
+
         statustype->state = UA_SERVERSTATE_RUNNING;
         statustype->secondsTillShutdown = 0;
+        if(server->endTime != 0) {
+            statustype->state = UA_SERVERSTATE_SHUTDOWN;
+            statustype->secondsTillShutdown = (UA_UInt32)((server->endTime - UA_DateTime_now()) / UA_DATETIME_SEC);
+        }
+
         value->value.data = statustype;
         value->value.type = &UA_TYPES[UA_TYPES_SERVERSTATUSDATATYPE];
         value->hasValue = true;
@@ -561,14 +591,6 @@ readMonitoredItems(UA_Server *server, const UA_NodeId *sessionId, void *sessionC
 }
 #endif /* defined(UA_ENABLE_METHODCALLS) && defined(UA_ENABLE_SUBSCRIPTIONS) */
 
-static UA_StatusCode
-writeNs0Variable(UA_Server *server, UA_UInt32 id, void *v, const UA_DataType *type) {
-    UA_Variant var;
-    UA_Variant_init(&var);
-    UA_Variant_setScalar(&var, v, type);
-    return UA_Server_writeValue(server, UA_NODEID_NUMERIC(0, id), var);
-}
-
 UA_StatusCode
 writeNs0VariableArray(UA_Server *server, UA_UInt32 id, void *v,
                       size_t length, const UA_DataType *type) {
@@ -658,6 +680,64 @@ UA_Server_minimalServerObject(UA_Server *server) {
 
     return retval;
 }
+
+#else
+
+static UA_StatusCode
+writeNs0Variable(UA_Server *server, UA_UInt32 id, void *v, const UA_DataType *type) {
+    UA_Variant var;
+    UA_Variant_init(&var);
+    UA_Variant_setScalar(&var, v, type);
+    return UA_Server_writeValue(server, UA_NODEID_NUMERIC(0, id), var);
+}
+
+static void
+addModellingRules(UA_Server *server) {
+    /* Test if the ModellingRules folder was added. (Only for the full ns0.) */
+    UA_NodeClass mrnc = UA_NODECLASS_UNSPECIFIED;
+    UA_StatusCode retval = UA_Server_readNodeClass(server,
+                                                   UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MODELLINGRULES),
+                                                   &mrnc);
+    if(retval != UA_STATUSCODE_GOOD)
+        return;
+
+    /* Add ExposesItsArray */
+    UA_Server_addReference(server,
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MODELLINGRULES),
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+                           UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_EXPOSESITSARRAY),
+                           true);
+
+    /* Add Mandatory */
+    UA_Server_addReference(server,
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MODELLINGRULES),
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+                           UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORY),
+                           true);
+
+
+    /* Add MandatoryPlaceholder */
+    UA_Server_addReference(server,
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MODELLINGRULES),
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+                           UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_MANDATORYPLACEHOLDER),
+                           true);
+
+    /* Add Optional */
+    UA_Server_addReference(server,
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MODELLINGRULES),
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+                           UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_OPTIONAL),
+                           true);
+
+    /* Add OptionalPlaceholder */
+    UA_Server_addReference(server,
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MODELLINGRULES),
+                           UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
+                           UA_EXPANDEDNODEID_NUMERIC(0, UA_NS0ID_MODELLINGRULE_OPTIONALPLACEHOLDER),
+                           true);
+}
+
 #endif
 
 /* Initialize the nodeset 0 by using the generated code of the nodeset compiler.
@@ -716,9 +796,9 @@ UA_Server_initNS0(UA_Server *server) {
                  UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERSTATUS_CURRENTTIME), currentTime);
 
     /* State */
-    UA_ServerState state = UA_SERVERSTATE_RUNNING;
-    retVal |= writeNs0Variable(server, UA_NS0ID_SERVER_SERVERSTATUS_STATE,
-                               &state, &UA_TYPES[UA_TYPES_SERVERSTATE]);
+    retVal |= UA_Server_setVariableNode_dataSource(server,
+                 UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERSTATUS_STATE),
+                                                   serverStatus);
 
     /* BuildInfo */
     retVal |= UA_Server_setVariableNode_dataSource(server,
@@ -757,9 +837,9 @@ UA_Server_initNS0(UA_Server *server) {
 #ifdef UA_GENERATED_NAMESPACE_ZERO
 
     /* SecondsTillShutdown */
-    UA_UInt32 secondsTillShutdown = 0;
-    retVal |= writeNs0Variable(server, UA_NS0ID_SERVER_SERVERSTATUS_SECONDSTILLSHUTDOWN,
-                               &secondsTillShutdown, &UA_TYPES[UA_TYPES_UINT32]);
+    retVal |= UA_Server_setVariableNode_dataSource(server,
+                 UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERSTATUS_SECONDSTILLSHUTDOWN),
+                                                   serverStatus);
 
     /* ShutDownReason */
     UA_LocalizedText shutdownReason;
@@ -801,6 +881,12 @@ UA_Server_initNS0(UA_Server *server) {
     UA_RedundancySupport redundancySupport = UA_REDUNDANCYSUPPORT_NONE;
     retVal |= writeNs0Variable(server, UA_NS0ID_SERVER_SERVERREDUNDANCY_REDUNDANCYSUPPORT,
                                &redundancySupport, &UA_TYPES[UA_TYPES_REDUNDANCYSUPPORT]);
+
+    /* Remove unused subtypes of ServerRedundancy */
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERREDUNDANCY_CURRENTSERVERID), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERREDUNDANCY_REDUNDANTSERVERARRAY), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERREDUNDANCY_SERVERURIARRAY), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERREDUNDANCY_SERVERNETWORKGROUPS), true);
 
     /* ServerCapabilities - LocaleIdArray */
     UA_LocaleId locale_en = UA_STRING("en");
@@ -872,6 +958,36 @@ UA_Server_initNS0(UA_Server *server) {
     retVal |= writeNs0Variable(server, UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXMONITOREDITEMSPERCALL,
                                &server->config.maxMonitoredItemsPerCall, &UA_TYPES[UA_TYPES_UINT32]);
 
+#ifdef UA_ENABLE_MICRO_EMB_DEV_PROFILE
+    /* Remove unused operation limit components */
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERHISTORYREADDATA), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERHISTORYREADEVENTS), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERHISTORYUPDATEDATA), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERHISTORYUPDATEEVENTS), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_ROLESET), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MAXSTRINGLENGTH), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MAXARRAYLENGTH), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERCAPABILITIES_MAXBYTESTRINGLENGTH), true);
+
+    /* Remove not supported Server Instance */
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_DICTIONARIES), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_ESTIMATEDRETURNTIME), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_LOCALTIME), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_PUBLISHSUBSCRIBE), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_NAMESPACES), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_REQUESTSERVERSTATECHANGE), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_RESENDDATA), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVERCONFIGURATION), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SETSUBSCRIPTIONDURABLE), true);
+
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERDIAGNOSTICS_SAMPLINGINTERVALDIAGNOSTICSARRAY), true);
+    UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERDIAGNOSTICS_SESSIONSDIAGNOSTICSSUMMARY), true);
+
+    /* Removing these NodeIds make Server Object to be non-complaint with UA 1.03  in CTT (Base Inforamtion/Base Info Core Structure/ 001.js)*/
+    //UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERDIAGNOSTICS_SERVERDIAGNOSTICSSUMMARY), true);
+    //UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_SERVERDIAGNOSTICS_SUBSCRIPTIONDIAGNOSTICSARRAY), true);
+#endif
+
 #ifndef UA_ENABLE_HISTORIZING
     UA_Server_deleteNode(server, UA_NODEID_NUMERIC(0, UA_NS0ID_HISTORYSERVERCAPABILITIES), true);
 #else
@@ -936,6 +1052,10 @@ UA_Server_initNS0(UA_Server *server) {
     retVal |= UA_Server_setMethodNode_callback(server,
                         UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER_GETMONITOREDITEMS), readMonitoredItems);
 #endif
+
+    /* The HasComponent references to the ModellingRules are not part of the
+     * Nodeset2.xml. So we add the references manually. */
+    addModellingRules(server);
 
 #endif /* UA_GENERATED_NAMESPACE_ZERO */
 
