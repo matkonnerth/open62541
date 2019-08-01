@@ -282,7 +282,11 @@ UA_StatusCode UA_XmlImport_loadFile(const FileHandler *fileHandler) {
         printf("no fileHandler->addNamespace - return\n");
         return UA_STATUSCODE_BADINVALIDARGUMENT;
     }
-    bool status = UA_STATUSCODE_GOOD;
+    if(fileHandler->file == NULL) {
+        printf("no fileHandler->file return\n");
+        return UA_STATUSCODE_BADINVALIDARGUMENT;
+    }
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
 
     TParserCtx *ctx = (TParserCtx *)malloc(sizeof(TParserCtx));
     ctx->state = PARSER_STATE_INIT;
@@ -311,6 +315,9 @@ UA_StatusCode UA_XmlImport_loadFile(const FileHandler *fileHandler) {
 cleanup:
     Nodeset_cleanup(ctx->nodeset);
     free(ctx);
-    fclose(f);
+    if(f)
+    {
+        fclose(f);
+    }
     return status;
 }
