@@ -97,7 +97,7 @@ if(UA_ENABLE_SUBSCRIPTIONS_EVENTS)
     add_example(tutorial_server_events tutorial_server_events.c)
 endif()
 
-if(UA_ENABLE_NODESTORE_XML)
+if(UA_ENABLE_XML_IMPORT)
     add_example(server_import server_import.c)
 endif()
 
