@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     f.userContext = server;    
     for(int cnt = 1; cnt < argc; cnt++) {
         f.file = argv[cnt];		
-		UA_Nodestore_Xml_load(&f);
+		UA_XmlImport_loadFile(&f);
 	}
 
     UA_StatusCode retval = UA_Server_run(server, &running);

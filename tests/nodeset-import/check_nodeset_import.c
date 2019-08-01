@@ -11,13 +11,15 @@
 #include "src_generated/open62541/namespace_tests_testimport_generated.h"
 #include "unistd.h"
 
+#include <open62541/plugin/nodesetLoader.h>
+
 UA_Server *server;
 
 static void setup(void) {
     server = UA_Server_new();
     UA_ServerConfig *config = UA_Server_getConfig(server);
     UA_ServerConfig_setDefault(config);
-    //UA_Server_run_startup(server);
+    UA_Server_run_startup(server);
 }
 
 static void teardown(void) {
@@ -27,17 +29,15 @@ static void teardown(void) {
 
 START_TEST(Server_addTestNodeset) {
     UA_StatusCode retval = namespace_tests_testimport_generated(server);
-    UA_Boolean bTrue = true;
-    UA_Server_run(server, &bTrue);
     ck_assert_uint_eq(retval, UA_STATUSCODE_GOOD);
 }
 END_TEST
 
 static Suite *testSuite_Client(void) {
-    Suite *s = suite_create("Server Nodeset Compiler");
-    TCase *tc_server = tcase_create("Server Testnodeset");
+    Suite *s = suite_create("Server Nodeset Import");
+    TCase *tc_server = tcase_create("Server Import");
     tcase_add_unchecked_fixture(tc_server, setup, teardown);
-    tcase_add_test(tc_server, Server_addTestNodeset);   
+    tcase_add_test(tc_server, Server_addTestNodeset);
     suite_add_tcase(s, tc_server);
     return s;
 }

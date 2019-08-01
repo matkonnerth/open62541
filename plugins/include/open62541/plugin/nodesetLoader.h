@@ -17,5 +17,5 @@ typedef struct {
 
 struct Nodeset;
 UA_StatusCode
-UA_Nodestore_Xml_load(const FileHandler *fileHandler);
+UA_XmlImport_loadFile(const FileHandler *fileHandler);
 #endif

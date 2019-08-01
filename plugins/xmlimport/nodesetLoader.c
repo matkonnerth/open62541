@@ -272,7 +272,7 @@ static int read_xmlfile(FILE *f, TParserCtx *parserCtxt) {
     return 0;
 }
 
-UA_StatusCode UA_Nodestore_Xml_load(const FileHandler *fileHandler) {
+UA_StatusCode UA_XmlImport_loadFile(const FileHandler *fileHandler) {
 
     if(fileHandler == NULL) {
         printf("no filehandler - return\n");
