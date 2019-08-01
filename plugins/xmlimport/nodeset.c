@@ -218,6 +218,11 @@ void Nodeset_cleanup(Nodeset* nodeset) {
         free(nodeset->countedChars[cnt]);
     }
     free(nodeset->countedChars);
+    for(size_t cnt = 0; cnt < nodeset->aliasSize; cnt++) {
+        free(nodeset->aliasArray[cnt]);
+    }
+    free(nodeset->aliasArray);
+    free(nodeset);
 }
 
 static char *getAttributeValue(Nodeset* nodeset, NodeAttribute *attr, const char **attributes,
@@ -440,7 +445,8 @@ static void addReference(void* ref, void* userData)
 static void cleanupRefs(void* ref, void* userData)
 {
     TRef *tref = (TRef *)ref;
-    UA_free(tref->ref->targetIds);
+    UA_free(tref->ref);
+    UA_free(tref->src);
     UA_free(tref->ref);
 }
 

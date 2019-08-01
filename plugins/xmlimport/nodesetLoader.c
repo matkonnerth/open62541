@@ -230,7 +230,10 @@ static void OnCharacters(void *ctx, const char *ch, int len)
         oldLength = strlen(oldString);
     }
     char *newValue = (char *)malloc(oldLength + (size_t)len + 1);
-    strncpy(newValue, oldString, oldLength);
+    if(oldString!=NULL)
+    {
+        strncpy(newValue, oldString, oldLength);
+    }
     strncpy(newValue + oldLength, ch, (size_t)len);
     Nodeset_addRefCountedChar(pctx->nodeset, newValue);
     newValue[oldLength + (size_t)len] = '\0';
