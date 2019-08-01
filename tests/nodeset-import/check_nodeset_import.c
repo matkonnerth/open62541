@@ -33,16 +33,29 @@ START_TEST(Server_addTestNodeset) {
 }
 END_TEST
 
+START_TEST(Server_ImportNodeset) {
+    FileHandler f;
+	f.addNamespace = UA_Server_addNamespace;
+    f.userContext = server;
+    f.file = "../tests/nodeset-import/testimport.xml";
+
+    UA_StatusCode retval = UA_XmlImport_loadFile(&f);
+    ck_assert_uint_eq(retval, UA_STATUSCODE_GOOD);
+}
+END_TEST
+
 static Suite *testSuite_Client(void) {
     Suite *s = suite_create("Server Nodeset Import");
     TCase *tc_server = tcase_create("Server Import");
     tcase_add_unchecked_fixture(tc_server, setup, teardown);
     tcase_add_test(tc_server, Server_addTestNodeset);
+    tcase_add_test(tc_server, Server_ImportNodeset);
     suite_add_tcase(s, tc_server);
     return s;
 }
 
-int main(void) {
+int main(int argc, char*argv[]) {
+    printf("%s", argv[0]);
     Suite *s = testSuite_Client();
     SRunner *sr = srunner_create(s);
     srunner_set_fork_status(sr, CK_NOFORK);
