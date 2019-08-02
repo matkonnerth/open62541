@@ -7,10 +7,11 @@
 
 #ifndef NODESET_H
 #define NODESET_H
+#include <open62541/plugin/nodesetLoader.h>
+#include <open62541/plugin/nodestore.h>
+
 #include <stdbool.h>
 #include <stddef.h>
-#include <open62541/plugin/nodestore.h>
-#include <open62541/plugin/nodesetLoader.h>
 
 typedef enum {
     NODECLASS_OBJECT = 0,
@@ -31,22 +32,36 @@ typedef struct TNamespace TNamespace;
 struct Alias;
 typedef struct Alias Alias;
 
-Nodeset* Nodeset_new(UA_Server* server);
+Nodeset *
+Nodeset_new(UA_Server *server);
 void
-Nodeset_setNewNamespaceCallback(Nodeset* nodeset, addNamespaceCb nsCallback);
+Nodeset_setNewNamespaceCallback(Nodeset *nodeset, addNamespaceCb nsCallback);
 void
 Nodeset_cleanup(Nodeset *nodeset);
-UA_Node *Nodeset_newNode(Nodeset* nodeset, TNodeClass nodeClass, int attributeSize, const char **attributes);
-void Nodeset_newNodeFinish(Nodeset* nodeset, UA_Node *node);
-UA_NodeReferenceKind* Nodeset_newReference(Nodeset* nodeset, UA_Node *node, int attributeSize, const char **attributes);
-void Nodeset_newReferenceFinish(Nodeset* nodeset, UA_NodeReferenceKind* ref, char* target);
-Alias *Nodeset_newAlias(Nodeset* nodeset, int attributeSize, const char **attribute);
-void Nodeset_newAliasFinish(Nodeset* nodeset, char* idString);
-TNamespace *Nodeset_newNamespace(Nodeset* nodeset);
-void Nodeset_newNamespaceFinish(Nodeset* nodeset, void* userContext, char* namespaceUri);
-void Nodeset_addRefCountedChar(Nodeset* nodeset, char *newChar);
-void Nodeset_linkReferences(Nodeset* nodeset, UA_Server* server);
-UA_Node * Nodeset_getNode(const Nodeset* nodeset, const UA_NodeId *nodeId);
+UA_Node *
+Nodeset_newNode(Nodeset *nodeset, TNodeClass nodeClass, int attributeSize,
+                const char **attributes);
+void
+Nodeset_newNodeFinish(Nodeset *nodeset, UA_Node *node);
+UA_NodeReferenceKind *
+Nodeset_newReference(Nodeset *nodeset, UA_Node *node, int attributeSize,
+                     const char **attributes);
+void
+Nodeset_newReferenceFinish(Nodeset *nodeset, UA_NodeReferenceKind *ref, char *target);
+Alias *
+Nodeset_newAlias(Nodeset *nodeset, int attributeSize, const char **attribute);
+void
+Nodeset_newAliasFinish(Nodeset *nodeset, char *idString);
+TNamespace *
+Nodeset_newNamespace(Nodeset *nodeset);
+void
+Nodeset_newNamespaceFinish(Nodeset *nodeset, void *userContext, char *namespaceUri);
+void
+Nodeset_addRefCountedChar(Nodeset *nodeset, char *newChar);
+void
+Nodeset_linkReferences(Nodeset *nodeset, UA_Server *server);
+UA_Node *
+Nodeset_getNode(const Nodeset *nodeset, const UA_NodeId *nodeId);
 void Nodeset_setDisplayname(UA_Node *node, char *s);
 
 #endif
