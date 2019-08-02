@@ -117,13 +117,9 @@ static UA_NodeId translateNodeId(const TNamespace *namespaces, UA_NodeId id) {
 }
 
 static UA_NodeId extractNodedId(const TNamespace *namespaces, char *s) {
-    if(s == NULL) {
-        return UA_NODEID_NULL;
-    }
     UA_NodeId id;
     id.namespaceIndex = 0;
     char *idxSemi = strchr(s, ';');
-
 
     //namespaceindex zero?
     if(idxSemi == NULL) {
@@ -245,11 +241,8 @@ static char *getAttributeValue(Nodeset* nodeset, NodeAttribute *attr, const char
     if(attr->defaultValue != NULL || attr->optional) {
         return attr->defaultValue;
     }
-    else
-    {
-        printf("error attribute lookup\n");
-        return NULL;
-    }
+    printf("attribute lookup error: %s\n", attr->name);
+    return NULL;
 }
 
 static UA_QualifiedName extractBrowseName(char* s)
