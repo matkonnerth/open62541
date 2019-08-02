@@ -66,11 +66,6 @@ struct Alias{
     UA_NodeId id;
 };
 
-struct MemoryPool;
-typedef struct {
-    struct MemoryPool *nodePool;
-} NodeContainer;
-
 struct TNamespace {
     UA_UInt16 idx;
     char *name;
@@ -88,11 +83,13 @@ typedef struct
     UA_NodeReferenceKind *ref;
 } TRef;
 
+struct MemoryPool;
+
 struct Nodeset {
     char **countedChars;
     Alias **aliasArray;
     size_t aliasSize;
-    size_t charsSize;    
+    size_t charsSize;
     TNamespaceTable *namespaceTable;
     size_t hierachicalRefsSize;
     UA_NodeId *hierachicalRefs;
@@ -215,14 +212,17 @@ Nodeset_setNewNamespaceCallback(Nodeset* nodeset, addNamespaceCb nsCallback)
 void Nodeset_cleanup(Nodeset* nodeset) {
     for(size_t cnt = 0; cnt < nodeset->charsSize; cnt++)
     {
-        free(nodeset->countedChars[cnt]);
+        UA_free(nodeset->countedChars[cnt]);
     }
-    free(nodeset->countedChars);
+    UA_free(nodeset->countedChars);
     for(size_t cnt = 0; cnt < nodeset->aliasSize; cnt++) {
-        free(nodeset->aliasArray[cnt]);
+        UA_free(nodeset->aliasArray[cnt]);
     }
-    free(nodeset->aliasArray);
-    free(nodeset);
+    UA_free(nodeset->aliasArray);
+    UA_free(nodeset->namespaceTable->ns);
+    UA_free(nodeset->namespaceTable);
+    MemoryPool_cleanup(nodeset->refPool);
+    UA_free(nodeset);
 }
 
 static char *getAttributeValue(Nodeset* nodeset, NodeAttribute *attr, const char **attributes,
@@ -445,8 +445,8 @@ static void addReference(void* ref, void* userData)
 static void cleanupRefs(void* ref, void* userData)
 {
     TRef *tref = (TRef *)ref;
-    UA_free(tref->ref);
-    UA_free(tref->src);
+    UA_NodeId_delete(tref->src);
+    UA_free(tref->ref->targetIds);
     UA_free(tref->ref);
 }
 
@@ -463,7 +463,6 @@ void Nodeset_linkReferences(Nodeset* nodeset, UA_Server* server)
     struct NodesetServer data = {nodeset, server};
     MemoryPool_forEach(nodeset->refPool, addReference, &data);
     MemoryPool_forEach(nodeset->refPool, cleanupRefs, NULL);
-    MemoryPool_cleanup(nodeset->refPool);
 }
 
 Alias *Nodeset_newAlias(Nodeset* nodeset, int attributeSize, const char **attributes) {
