@@ -61,6 +61,16 @@ START_TEST(Server_EmptyHandler) {
 }
 END_TEST
 
+START_TEST(Server_ImportBasicNodeClassTest) {
+    FileHandler f;
+	f.addNamespace = UA_Server_addNamespace;
+    f.userContext = server;
+    f.file = "../tests/nodeset-import/basicNodeClassTest.xml";
+    UA_StatusCode retval = UA_XmlImport_loadFile(&f);
+    ck_assert_uint_eq(retval, UA_STATUSCODE_GOOD);
+}
+END_TEST
+
 static Suite *testSuite_Client(void) {
     Suite *s = suite_create("Server Nodeset Import");
     TCase *tc_server = tcase_create("Server Import");
@@ -69,6 +79,7 @@ static Suite *testSuite_Client(void) {
     tcase_add_test(tc_server, Server_ImportNodeset);
     tcase_add_test(tc_server, Server_ImportNoFile);
     tcase_add_test(tc_server, Server_EmptyHandler);
+    tcase_add_test(tc_server, Server_ImportBasicNodeClassTest);
     suite_add_tcase(s, tc_server);
     return s;
 }
