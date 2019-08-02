@@ -232,9 +232,9 @@ static void OnCharacters(void *ctx, const char *ch, int len)
     char *newValue = (char *)malloc(oldLength + (size_t)len + 1);
     if(oldString!=NULL)
     {
-        strncpy(newValue, oldString, oldLength);
+        memcpy(newValue, oldString, oldLength);
     }
-    strncpy(newValue + oldLength, ch, (size_t)len);
+    memcpy(newValue + oldLength, ch, (size_t)len);
     Nodeset_addRefCountedChar(pctx->nodeset, newValue);
     newValue[oldLength + (size_t)len] = '\0';
     pctx->onCharacters = newValue;
