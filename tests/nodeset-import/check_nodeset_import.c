@@ -13,9 +13,15 @@
 
 #include <open62541/plugin/nodesetLoader.h>
 
+#define CAT(a,b) a #b
+
+#define TESTIMPORTXML NODESETPATH "/testimport.xml"
+#define BASICNODECLASSTESTXML NODESETPATH "/basicNodeClassTest.xml"
+
 UA_Server *server;
 
 static void setup(void) {
+    printf("path to testnodesets %s\n", NODESETPATH);
     server = UA_Server_new();
     UA_ServerConfig *config = UA_Server_getConfig(server);
     UA_ServerConfig_setDefault(config);
@@ -37,8 +43,7 @@ START_TEST(Server_ImportNodeset) {
     FileHandler f;
 	f.addNamespace = UA_Server_addNamespace;
     f.userContext = server;
-    f.file = "../tests/nodeset-import/testimport.xml";
-
+    f.file = TESTIMPORTXML;
     UA_StatusCode retval = UA_XmlImport_loadFile(&f);
     ck_assert_uint_eq(retval, UA_STATUSCODE_GOOD);
 }
@@ -49,7 +54,6 @@ START_TEST(Server_ImportNoFile) {
 	f.addNamespace = UA_Server_addNamespace;
     f.userContext = server;
     f.file = "notExistingFile.xml";
-
     UA_StatusCode retval = UA_XmlImport_loadFile(&f);
     ck_assert_uint_eq(retval, UA_STATUSCODE_BADNOTFOUND);
 }
@@ -65,7 +69,7 @@ START_TEST(Server_ImportBasicNodeClassTest) {
     FileHandler f;
 	f.addNamespace = UA_Server_addNamespace;
     f.userContext = server;
-    f.file = "../tests/nodeset-import/basicNodeClassTest.xml";
+    f.file = BASICNODECLASSTESTXML;
     UA_StatusCode retval = UA_XmlImport_loadFile(&f);
     ck_assert_uint_eq(retval, UA_STATUSCODE_GOOD);
 }

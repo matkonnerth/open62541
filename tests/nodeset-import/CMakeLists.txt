@@ -5,7 +5,7 @@ ua_generate_nodeset(
     NAME "tests-testimport"
     NAMESPACE_IDX 2
     OUTPUT_DIR "${GENERATE_OUTPUT_DIR}"
-    FILE "${PROJECT_SOURCE_DIR}/tests/nodeset-import/testimport.xml"
+    FILE "${PROJECT_SOURCE_DIR}/tests/nodeset-import/testNodesets/testimport.xml"
     DEPENDS_NS "${PROJECT_SOURCE_DIR}/deps/ua-nodeset/Schema/Opc.Ua.NodeSet2.xml"
 )
 
@@ -16,3 +16,7 @@ add_executable(check_nodeset_import check_nodeset_import.c
 add_dependencies(check_nodeset_import open62541-generator-ns-tests-testimport)
 target_link_libraries(check_nodeset_import ${LIBS})
 add_test_valgrind(nodeset_compiler_import ${TESTS_BINARY_DIR}/check_nodeset_import)
+
+
+get_filename_component(NODESETPATH ${CMAKE_CURRENT_SOURCE_DIR}/testNodesets ABSOLUTE)
+target_compile_definitions(check_nodeset_import PRIVATE NODESETPATH="${NODESETPATH}")
