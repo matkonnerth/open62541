@@ -8,6 +8,7 @@
 #include "nodeset.h"
 
 #include <open62541/server.h>
+#include <open62541/server_config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,6 +103,7 @@ struct Nodeset {
     UA_Server *server;
     size_t typesSize;
     UA_DataType *types;
+    const UA_DataTypeArray *customTypes;
 };
 
 // hierachical references
@@ -225,6 +227,9 @@ Nodeset_new(UA_Server *server) {
     table->ns[0].name = "http://opcfoundation.org/UA/";
     nodeset->namespaceTable = table;
     return nodeset;
+
+    UA_ServerConfig *config = UA_Server_getConfig(server);
+    nodeset->customTypes = config->customDataTypes;
 }
 
 void
@@ -606,6 +611,35 @@ Nodeset_newDataTypeDefinition(Nodeset *nodeset, const UA_Node *node,
     return newType;
 }
 
+static const UA_DataType *
+findDataType(const Nodeset* nodeset, const UA_NodeId* id) {
+    for(size_t i = 0; i < UA_TYPES_COUNT; ++i) {
+        if(UA_NodeId_equal(&UA_TYPES[i].typeId, id)) {
+            return &UA_TYPES[i];
+        }
+    }
+
+    // lookup custom type
+    const UA_DataTypeArray *customTypes = nodeset->customTypes;
+    while(customTypes) {
+        for(size_t i = 0; i < customTypes->typesSize; ++i) {
+            if(UA_NodeId_equal(&customTypes->types[i].typeId, id))
+                return &customTypes->types[i];
+        }
+        customTypes = customTypes->next;
+    }
+
+    // lookup internal array
+    for(size_t i = 0; i < nodeset->typesSize; i++)
+    {
+        if(UA_NodeId_equal(&nodeset->types[i].typeId, id))
+        {
+            return &nodeset->types[i];
+        }
+    }
+    return NULL;
+}
+
 void
 Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
                                    int attributeSize, const char **attributes)
@@ -633,11 +667,29 @@ Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
     // todo copy, otherwise it will crash
     m->memberName =
         getAttributeValue(nodeset, &attrDataTypeField_Name, attributes, attributeSize);
-    m->namespaceZero = mType.namespaceIndex == 0 ? true : false;
+    m->namespaceZero = mType.namespaceIndex == 0 ? UA_TRUE : UA_FALSE;
+    //
+    const UA_DataType *memberType = findDataType(nodeset, &mType);
+    if(!memberType)
+        return;
+    m->memberTypeIndex = memberType->typeIndex;
 }
+
+
 
 void Nodeset_getDataTypes(Nodeset* nodeset)
 {
+
+    /*
+    const UA_DataType *typelists = NULL;
+    if(nodeset->customTypes) {
+        const UA_DataType* typelists2[2] = {UA_TYPES, nodeset->customTypes->types};
+        typelists = typelists2;
+    } else {
+        typelists = &UA_TYPES;
+    }
+    */
+
     size_t structCnt = 0;
     for(size_t cnt = 0; cnt < nodeset->typesSize; cnt++)
     {
@@ -647,7 +699,28 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
         for(size_t i = 0; i < type->membersSize; i++)
         {
             UA_DataTypeMember *m = type->members + i;
-            m->
+            type->memSize = (UA_UInt16)(type->memSize + UA_TYPES[m->memberTypeIndex].memSize);
+            //type->typeIndex
         }
+
+        //copy over to custom types
+        structCnt++;
     }
+    
+    UA_DataType* newTypes = (UA_DataType*)UA_calloc(structCnt, sizeof(UA_DataType));
+
+    size_t copyCnt=0;
+    for(size_t cnt = 0; cnt < nodeset->typesSize; cnt++)
+    {
+        UA_DataType *type = nodeset->types + cnt;
+        if(UA_DATATYPEKIND_ENUM == type->typeKind)
+            continue;
+        memcpy(newTypes + copyCnt, type, sizeof(UA_DataType));
+        type->typeIndex = (UA_UInt16) copyCnt;
+    }
+
+    UA_DataTypeArray newCustomTypes = {nodeset->customTypes, structCnt,
+        newTypes};
+
+    UA_Server_getConfig(nodeset->server)->customDataTypes = &newCustomTypes;
 }

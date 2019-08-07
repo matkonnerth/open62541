@@ -72,4 +72,7 @@ void
 Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
                                    int attributeSize, const char **attributes);
 
+void
+Nodeset_getDataTypes(Nodeset *nodeset);
+
 #endif

@@ -347,6 +347,7 @@ UA_StatusCode UA_XmlImport_loadFile(const FileHandler *fileHandler) {
     }
 
     Nodeset_linkReferences(ctx->nodeset);
+    Nodeset_getDataTypes(ctx->nodeset);
 
 cleanup:
     Nodeset_cleanup(ctx->nodeset);
