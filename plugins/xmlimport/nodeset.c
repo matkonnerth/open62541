@@ -633,4 +633,21 @@ Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
     // todo copy, otherwise it will crash
     m->memberName =
         getAttributeValue(nodeset, &attrDataTypeField_Name, attributes, attributeSize);
+    m->namespaceZero = mType.namespaceIndex == 0 ? true : false;
+}
+
+void Nodeset_getDataTypes(Nodeset* nodeset)
+{
+    size_t structCnt = 0;
+    for(size_t cnt = 0; cnt < nodeset->typesSize; cnt++)
+    {
+        UA_DataType *type = nodeset->types + cnt;
+        if(UA_DATATYPEKIND_ENUM == type->typeKind)
+            continue;
+        for(size_t i = 0; i < type->membersSize; i++)
+        {
+            UA_DataTypeMember *m = type->members + i;
+            m->
+        }
+    }
 }
