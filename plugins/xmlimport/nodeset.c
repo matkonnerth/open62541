@@ -202,10 +202,19 @@ Nodeset_new(UA_Server *server) {
     nodeset->refPool = MemoryPool_init(sizeof(TRef), 1000);
     nodeset->server = server;
 
-    TNamespaceTable *table = (TNamespaceTable *)malloc(sizeof(TNamespaceTable));
+    TNamespaceTable *table = (TNamespaceTable *)UA_malloc(sizeof(TNamespaceTable));
+    if(!table)
+    {
+        return NULL;
+    }
+
     table->cb = NULL;
     table->size = 1;
-    table->ns = (TNamespace *)malloc((sizeof(TNamespace)));
+    table->ns = (TNamespace *)UA_malloc((sizeof(TNamespace)));
+    if(!table->ns)
+    {
+        return NULL;
+    }
     table->ns[0].idx = 0;
     table->ns[0].name = "http://opcfoundation.org/UA/";
     nodeset->namespaceTable = table;
@@ -244,7 +253,11 @@ getAttributeValue(Nodeset *nodeset, NodeAttribute *attr, const char **attributes
         const char *value_start = attributes[i * fields + 3];
         const char *value_end = attributes[i * fields + 4];
         size_t size = (size_t)(value_end - value_start);
-        char *value = (char *)malloc(sizeof(char) * size + 1);
+        char *value = (char *)UA_malloc(sizeof(char) * size + 1);
+        if(!value)
+        {
+            return NULL;
+        }
         // todo: nodeset, refcount char
         nodeset->countedChars[nodeset->charsSize++] = value;
         memcpy(value, value_start, size);
@@ -411,11 +424,6 @@ Nodeset_newReference(Nodeset *nodeset, UA_Node *node, int attributeSize,
     return newRef;
 }
 
-struct NodesetServer {
-    Nodeset *nodeset;
-    UA_Server *server;
-};
-
 static bool
 isHierachicalReference(Nodeset *nodeset, const UA_NodeId *refId) {
     for(size_t i = 0; i < nodeset->hierachicalRefsSize; i++) {
@@ -429,8 +437,7 @@ isHierachicalReference(Nodeset *nodeset, const UA_NodeId *refId) {
 static void
 addReference(void *ref, void *userData) {
     TRef *tref = (TRef *)ref;
-    struct NodesetServer *data = (struct NodesetServer *)userData;
-    Nodeset *ns = data->nodeset;
+    Nodeset *ns = (Nodeset *)userData;
 
     // we insert the inverse reference only if its an hierachical reference
     // if the non-hierachical inverse reference is needed, it must be manually
@@ -443,7 +450,7 @@ addReference(void *ref, void *userData) {
             eId.namespaceUri = UA_STRING_NULL;
             eId.nodeId = *tref->src;
             eId.serverIndex = 0;
-            UA_Server_addReference(data->server, tref->ref->targetIds[cnt].nodeId,
+            UA_Server_addReference(ns->server, tref->ref->targetIds[cnt].nodeId,
                                    tref->ref->referenceTypeId, eId, tref->ref->isInverse);
         }
     }
@@ -458,7 +465,7 @@ cleanupRefs(void *ref, void *userData) {
 }
 
 void
-Nodeset_linkReferences(Nodeset *nodeset, UA_Server *server) {
+Nodeset_linkReferences(Nodeset *nodeset) {
     // iterate over all references, if it's an hierachical ref, insert the inverse
     // ref
     // from UA Spec part 3, References:
@@ -473,8 +480,7 @@ Nodeset_linkReferences(Nodeset *nodeset, UA_Server *server) {
     // separate
     // References
 
-    struct NodesetServer data = {nodeset, server};
-    MemoryPool_forEach(nodeset->refPool, addReference, &data);
+    MemoryPool_forEach(nodeset->refPool, addReference, nodeset);
     MemoryPool_forEach(nodeset->refPool, cleanupRefs, NULL);
 }
 
@@ -497,7 +503,7 @@ TNamespace *
 Nodeset_newNamespace(Nodeset *nodeset) {
     nodeset->namespaceTable->size++;
     TNamespace *ns =
-        (TNamespace *)realloc(nodeset->namespaceTable->ns,
+        (TNamespace *)UA_realloc(nodeset->namespaceTable->ns,
                               sizeof(TNamespace) * (nodeset->namespaceTable->size));
     nodeset->namespaceTable->ns = ns;
     ns[nodeset->namespaceTable->size - 1].name = NULL;
@@ -538,9 +544,9 @@ Nodeset_newNodeFinish(Nodeset *nodeset, UA_Node *node) {
         TRef *ref = (TRef *)MemoryPool_getMemoryForElement(nodeset->refPool);
         // store a copy
         UA_NodeReferenceKind *copyRef =
-            (UA_NodeReferenceKind *)malloc(sizeof(UA_NodeReferenceKind));
+            (UA_NodeReferenceKind *)UA_malloc(sizeof(UA_NodeReferenceKind));
         memcpy(copyRef, &node->references[cnt], sizeof(UA_NodeReferenceKind));
-        copyRef->targetIds = (UA_ExpandedNodeId *)malloc(
+        copyRef->targetIds = (UA_ExpandedNodeId *)UA_malloc(
             sizeof(UA_ExpandedNodeId) * node->references[cnt].targetIdsSize);
         memcpy(copyRef->targetIds, node->references[cnt].targetIds,
                sizeof(UA_ExpandedNodeId) * node->references[cnt].targetIdsSize);

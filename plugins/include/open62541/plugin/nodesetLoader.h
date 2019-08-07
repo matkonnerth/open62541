@@ -5,14 +5,9 @@ struct UA_Server;
 typedef UA_UInt16 (*addNamespaceCb)(struct UA_Server *server, const char *);
 
 typedef struct {
-    int loadTimeMs;
-} Statistics;
-
-typedef struct {
     const char *file;
     addNamespaceCb addNamespace;
-    const Statistics *stat;
-    void *userContext;
+    struct UA_Server *server;
 } FileHandler;
 
 struct Nodeset;

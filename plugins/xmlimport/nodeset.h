@@ -59,7 +59,7 @@ Nodeset_newNamespaceFinish(Nodeset *nodeset, void *userContext, char *namespaceU
 void
 Nodeset_addRefCountedChar(Nodeset *nodeset, char *newChar);
 void
-Nodeset_linkReferences(Nodeset *nodeset, UA_Server *server);
+Nodeset_linkReferences(Nodeset *nodeset);
 UA_Node *
 Nodeset_getNode(const Nodeset *nodeset, const UA_NodeId *nodeId);
 void Nodeset_setDisplayname(UA_Node *node, char *s);

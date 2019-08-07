@@ -235,7 +235,7 @@ OnCharacters(void *ctx, const char *ch, int len) {
     if(oldString != NULL) {
         oldLength = strlen(oldString);
     }
-    char *newValue = (char *)malloc(oldLength + (size_t)len + 1);
+    char *newValue = (char *)UA_malloc(oldLength + (size_t)len + 1);
     if(oldString != NULL) {
         memcpy(newValue, oldString, oldLength);
     }
@@ -301,8 +301,8 @@ UA_StatusCode UA_XmlImport_loadFile(const FileHandler *fileHandler) {
     ctx->prev_state = PARSER_STATE_INIT;
     ctx->unknown_depth = 0;
     ctx->onCharacters = NULL;
-    ctx->userContext = fileHandler->userContext;
-    ctx->nodeset = Nodeset_new((UA_Server *)fileHandler->userContext);
+    ctx->userContext = NULL;
+    ctx->nodeset = Nodeset_new(fileHandler->server);
 
     Nodeset_setNewNamespaceCallback(ctx->nodeset, fileHandler->addNamespace);
 
@@ -318,11 +318,11 @@ UA_StatusCode UA_XmlImport_loadFile(const FileHandler *fileHandler) {
         status = UA_STATUSCODE_BADNOTFOUND;
     }
 
-    Nodeset_linkReferences(ctx->nodeset, (UA_Server *)fileHandler->userContext);
+    Nodeset_linkReferences(ctx->nodeset);
 
 cleanup:
     Nodeset_cleanup(ctx->nodeset);
-    free(ctx);
+    UA_free(ctx);
     if(f) {
         fclose(f);
     }

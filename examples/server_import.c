@@ -26,7 +26,7 @@ main(int argc, char *argv[]) {
 
     FileHandler f;
     f.addNamespace = UA_Server_addNamespace;
-    f.userContext = server;
+    f.server = server;
     for(int cnt = 1; cnt < argc; cnt++) {
         f.file = argv[cnt];
         UA_XmlImport_loadFile(&f);
