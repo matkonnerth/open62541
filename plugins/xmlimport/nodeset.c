@@ -61,7 +61,7 @@ NodeAttribute attrAlias = {ATTRIBUTE_ALIAS, NULL, false};
 //for dataTypeDefinition
 NodeAttribute attrDataTypeField_Name= {"Name", NULL, false};
 NodeAttribute attrDataTypeField_Value = {"Value", "-1", false};
-NodeAttribute attrDataTypeField_DataType = {"DataType", "i=24", false};
+NodeAttribute attrDataTypeField_DataType = {"DataType", NULL, false};
 
 const UA_NodeClass UA_NODECLASSES[NODECLASS_COUNT] = {
     UA_NODECLASS_OBJECT,      UA_NODECLASS_OBJECTTYPE, UA_NODECLASS_VARIABLE,
@@ -139,6 +139,10 @@ static UA_NodeId translateNodeId(const TNamespace *namespaces, UA_NodeId id) {
 }
 
 static UA_NodeId extractNodedId(const TNamespace *namespaces, char *s) {
+    if(!s)
+    {
+        return UA_NODEID_NULL;
+    }
     UA_NodeId id;
     id.namespaceIndex = 0;
     char *idxSemi = strchr(s, ';');
@@ -665,17 +669,24 @@ Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
     UA_DataTypeMember* m = &members[datatype->membersSize];
     datatype->members = members;
     // todo copy, otherwise it will crash
-    m->memberName =
-        getAttributeValue(nodeset, &attrDataTypeField_Name, attributes, attributeSize);
+
+    char* memberName = getAttributeValue(nodeset, &attrDataTypeField_Name, attributes, attributeSize);
+    
+    if(memberName)
+    {
+        char *memberNameCopy = (char*)UA_calloc(strlen(memberName) + 1, sizeof(char));
+        memcpy(memberNameCopy, memberName, strlen(memberName));
+        m->memberName = memberNameCopy;
+    }
     m->namespaceZero = mType.namespaceIndex == 0 ? UA_TRUE : UA_FALSE;
     //
     const UA_DataType *memberType = findDataType(nodeset, &mType);
     if(!memberType)
         return;
     m->memberTypeIndex = memberType->typeIndex;
+    datatype->membersSize++;
+    m->isArray = false;
 }
-
-
 
 void Nodeset_getDataTypes(Nodeset* nodeset)
 {
@@ -717,10 +728,13 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
             continue;
         memcpy(newTypes + copyCnt, type, sizeof(UA_DataType));
         type->typeIndex = (UA_UInt16) copyCnt;
+        copyCnt++;
     }
 
-    UA_DataTypeArray newCustomTypes = {nodeset->customTypes, structCnt,
-        newTypes};
+    UA_DataTypeArray *newCustomTypes = (UA_DataTypeArray*) UA_calloc(1, sizeof(UA_DataTypeArray));
+    newCustomTypes->next = nodeset->customTypes;
+    newCustomTypes->types = newTypes;
+    newCustomTypes->typesSize = structCnt;
 
-    UA_Server_getConfig(nodeset->server)->customDataTypes = &newCustomTypes;
+    UA_Server_getConfig(nodeset->server)->customDataTypes = newCustomTypes;
 }

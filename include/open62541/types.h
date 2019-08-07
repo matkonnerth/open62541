@@ -1005,7 +1005,7 @@ UA_Guid UA_EXPORT UA_Guid_random(void);     /* no cryptographic entropy */
  * instead. */
 typedef struct UA_DataTypeArray {
     const struct UA_DataTypeArray *next;
-    const size_t typesSize;
+    size_t typesSize;
     const UA_DataType *types;
 } UA_DataTypeArray;
 
