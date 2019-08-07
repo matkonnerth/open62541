@@ -64,4 +64,12 @@ UA_Node *
 Nodeset_getNode(const Nodeset *nodeset, const UA_NodeId *nodeId);
 void Nodeset_setDisplayname(UA_Node *node, char *s);
 
+UA_DataType *
+Nodeset_newDataTypeDefinition(Nodeset *nodeset, const UA_Node *node,
+                              int attributeSize, const char **attributes);
+
+void
+Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
+                                   int attributeSize, const char **attributes);
+
 #endif

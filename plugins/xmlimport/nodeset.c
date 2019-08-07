@@ -53,10 +53,14 @@ NodeAttribute attrEventNotifier = {ATTRIBUTE_EVENTNOTIFIER, NULL, true};
 NodeAttribute attrDataType = {ATTRIBUTE_DATATYPE, "i=24", false};
 NodeAttribute attrValueRank = {ATTRIBUTE_VALUERANK, "-1", false};
 NodeAttribute attrArrayDimensions = {ATTRIBUTE_ARRAYDIMENSIONS, "", false};
-NodeAttribute attrIsAbstract = {ATTRIBUTE_ARRAYDIMENSIONS, "false", false};
+NodeAttribute attrIsAbstract = {ATTRIBUTE_ISABSTRACT, "false", false};
 NodeAttribute attrIsForward = {ATTRIBUTE_ISFORWARD, "true", false};
 NodeAttribute attrReferenceType = {ATTRIBUTE_REFERENCETYPE, NULL, true};
 NodeAttribute attrAlias = {ATTRIBUTE_ALIAS, NULL, false};
+//for dataTypeDefinition
+NodeAttribute attrDataTypeField_Name= {"Name", NULL, false};
+NodeAttribute attrDataTypeField_Value = {"Value", "-1", false};
+NodeAttribute attrDataTypeField_DataType = {"DataType", "i=24", false};
 
 const UA_NodeClass UA_NODECLASSES[NODECLASS_COUNT] = {
     UA_NODECLASS_OBJECT,      UA_NODECLASS_OBJECTTYPE, UA_NODECLASS_VARIABLE,
@@ -96,6 +100,8 @@ struct Nodeset {
     UA_NodeId *hierachicalRefs;
     struct MemoryPool *refPool;
     UA_Server *server;
+    size_t typesSize;
+    UA_DataType *types;
 };
 
 // hierachical references
@@ -191,10 +197,10 @@ alias2Id(Nodeset *nodeset, const char *alias) {
 
 Nodeset *
 Nodeset_new(UA_Server *server) {
-    Nodeset *nodeset = (Nodeset *)malloc(sizeof(Nodeset));
-    nodeset->aliasArray = (Alias **)malloc(sizeof(Alias *) * MAX_ALIAS);
+    Nodeset *nodeset = (Nodeset *)UA_calloc(1, sizeof(Nodeset));
+    nodeset->aliasArray = (Alias **)UA_calloc(MAX_ALIAS, sizeof(Alias *));
     nodeset->aliasSize = 0;
-    nodeset->countedChars = (char **)malloc(sizeof(char *) * MAX_REFCOUNTEDCHARS);
+    nodeset->countedChars = (char **)UA_calloc(MAX_REFCOUNTEDCHARS, sizeof(char *));
     nodeset->charsSize = 0;
 
     nodeset->hierachicalRefs = hierachicalRefs;
@@ -302,7 +308,7 @@ extractAttributes(Nodeset *nodeset, const TNamespace *namespaces, UA_Node *node,
     switch(node->nodeClass) {
         case UA_NODECLASS_OBJECTTYPE:
             ((UA_ObjectTypeNode *)node)->isAbstract =
-                getAttributeValue(nodeset, &attrIsAbstract, attributes, attributeSize);
+                isTrue(getAttributeValue(nodeset, &attrIsAbstract, attributes, attributeSize));
             break;
         case UA_NODECLASS_OBJECT:
             ((UA_ObjectNode *)node)->eventNotifier = isTrue(getAttributeValue(
@@ -351,7 +357,9 @@ extractAttributes(Nodeset *nodeset, const TNamespace *namespaces, UA_Node *node,
                 getAttributeValue(nodeset, &attrIsAbstract, attributes, attributeSize));
             break;
         }
-        case UA_NODECLASS_DATATYPE:;
+        case UA_NODECLASS_DATATYPE:
+            ((UA_DataTypeNode *)node)->isAbstract =
+                isTrue(getAttributeValue(nodeset, &attrIsAbstract, attributes, attributeSize));
             break;
         case UA_NODECLASS_METHOD:
             //((UA_MethodNode *)node)->executable =
@@ -514,7 +522,7 @@ void
 Nodeset_newNamespaceFinish(Nodeset *nodeset, void *userContext, char *namespaceUri) {
     nodeset->namespaceTable->ns[nodeset->namespaceTable->size - 1].name = namespaceUri;
     int globalIdx = nodeset->namespaceTable->cb(
-        (UA_Server *)userContext,
+        nodeset->server,
         nodeset->namespaceTable->ns[nodeset->namespaceTable->size - 1].name);
 
     nodeset->namespaceTable->ns[nodeset->namespaceTable->size - 1].idx =
@@ -576,4 +584,53 @@ Nodeset_newReferenceFinish(Nodeset *nodeset, UA_NodeReferenceKind *ref, char *ta
 void
 Nodeset_addRefCountedChar(Nodeset *nodeset, char *newChar) {
     nodeset->countedChars[nodeset->charsSize++] = newChar;
+}
+
+UA_DataType *
+Nodeset_newDataTypeDefinition(Nodeset *nodeset, const UA_Node *node,
+                              int attributeSize, const char **attributes)
+{
+    UA_DataType*types = (UA_DataType*) UA_realloc(nodeset->types, sizeof(UA_DataType)*(nodeset->typesSize + 1));
+    UA_DataType *newType = &types[nodeset->typesSize];
+    nodeset->types = types;
+    newType->binaryEncodingId = 0;  // to be done after linking references
+    newType->members = NULL;
+    newType->membersSize = 0;
+    newType->memSize = 0;                           //after we have all datatypes
+    newType->overlayable = 0;                       //?
+    newType->pointerFree = 0;                       //?
+    newType->typeId = node->nodeId;
+    newType->typeIndex = (UA_UInt16)nodeset->typesSize;
+    newType->typeKind = UA_DATATYPEKIND_STRUCTURE;  //after linking the nodeset
+    nodeset->typesSize++;
+    return newType;
+}
+
+void
+Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
+                                   int attributeSize, const char **attributes)
+{
+    if(UA_DATATYPEKIND_ENUM==datatype->typeKind)
+    {
+        return;
+    }
+    UA_NodeId mType =
+        extractNodedId(nodeset->namespaceTable->ns,
+                       getAttributeValue(nodeset, &attrDataTypeField_DataType, attributes,
+                                         attributeSize));
+    if(UA_NodeId_equal(&mType, &UA_NODEID_NULL))
+    {
+        datatype->typeKind = UA_DATATYPEKIND_ENUM;
+        datatype->overlayable = UA_BINARY_OVERLAYABLE_INTEGER;
+        datatype->pointerFree = true;
+        datatype->typeIndex = UA_TYPES_INT32;
+        return;
+    }
+    //go on with struct member
+    UA_DataTypeMember* members = (UA_DataTypeMember*)UA_realloc(datatype->members, sizeof(UA_DataTypeMember)*((size_t)datatype->membersSize + 1));
+    UA_DataTypeMember* m = &members[datatype->membersSize];
+    datatype->members = members;
+    // todo copy, otherwise it will crash
+    m->memberName =
+        getAttributeValue(nodeset, &attrDataTypeField_Name, attributes, attributeSize);
 }

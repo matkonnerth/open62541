@@ -39,7 +39,9 @@ typedef enum {
     PARSER_STATE_ALIAS,
     PARSER_STATE_UNKNOWN,
     PARSER_STATE_NAMESPACEURIS,
-    PARSER_STATE_URI
+    PARSER_STATE_URI,
+    PARSER_STATE_DATATYPEDEFINITION,
+    PARSER_STATE_DATATYPEDEFINITION_FIELD
 } TParserState;
 
 struct TParserCtx {
@@ -53,6 +55,7 @@ struct TParserCtx {
     void *userContext;
     char *onCharacters;
     Nodeset *nodeset;
+    UA_DataType *type;
 };
 
 struct TParserCtx;
@@ -147,11 +150,30 @@ OnStartElementNs(void *ctx, const char *localname, const char *prefix, const cha
                 pctx->state = PARSER_STATE_REFERENCES;
             } else if(!strcmp(localname, DESCRIPTION)) {
                 pctx->state = PARSER_STATE_DESCRIPTION;
+            }
+            else if(!strcmp(localname, "Definition"))
+            {
+                //new DataTypeDefinition
+                pctx->state = PARSER_STATE_DATATYPEDEFINITION;
+                pctx->type = Nodeset_newDataTypeDefinition(pctx->nodeset, pctx->node, nb_attributes, attributes);
+            }
+            else {
+                enterUnknownState(pctx);
+            }
+            break;
+        case PARSER_STATE_DATATYPEDEFINITION:
+            if(!strcmp(localname, "Field"))
+            {
+                Nodeset_newDataTypeDefinitionField(pctx->nodeset,
+                                                   pctx->type, nb_attributes, attributes);
+                pctx->state = PARSER_STATE_DATATYPEDEFINITION_FIELD;
             } else {
                 enterUnknownState(pctx);
             }
             break;
-
+        case PARSER_STATE_DATATYPEDEFINITION_FIELD:
+            enterUnknownState(pctx);
+            break;
         case PARSER_STATE_REFERENCES:
             if(!strcmp(localname, REFERENCE)) {
                 pctx->state = PARSER_STATE_REFERENCE;
@@ -217,6 +239,12 @@ static void OnEndElementNs(void *ctx, const char *localname, const char *prefix,
             Nodeset_newReferenceFinish(pctx->nodeset, pctx->refKind, pctx->onCharacters);
             pctx->state = PARSER_STATE_REFERENCES;
         } break;
+        case PARSER_STATE_DATATYPEDEFINITION:
+            pctx->state = PARSER_STATE_NODE;
+            break;
+        case PARSER_STATE_DATATYPEDEFINITION_FIELD:
+            pctx->state = PARSER_STATE_DATATYPEDEFINITION;
+            break;
         case PARSER_STATE_UNKNOWN:
             pctx->unknown_depth--;
             if(pctx->unknown_depth == 0) {
