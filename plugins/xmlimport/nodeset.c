@@ -128,7 +128,10 @@ UA_NodeId hierachicalRefs[MAX_HIERACHICAL_REFS] = {
      .identifier.numeric = UA_NS0ID_HASCOMPONENT},
     {.namespaceIndex = 0,
      .identifierType = UA_NODEIDTYPE_NUMERIC,
-     .identifier.numeric = UA_NS0ID_HASPROPERTY}};
+     .identifier.numeric = UA_NS0ID_HASPROPERTY},
+     {.namespaceIndex = 0,
+     .identifierType = UA_NODEIDTYPE_NUMERIC,
+     .identifier.numeric = UA_NS0ID_HASENCODING}};
 
 static UA_NodeId translateNodeId(const TNamespace *namespaces, UA_NodeId id) {
     if(id.namespaceIndex > 0) {
@@ -210,7 +213,7 @@ Nodeset_new(UA_Server *server) {
     nodeset->charsSize = 0;
 
     nodeset->hierachicalRefs = hierachicalRefs;
-    nodeset->hierachicalRefsSize = 7;
+    nodeset->hierachicalRefsSize = 8;
     nodeset->refPool = MemoryPool_init(sizeof(TRef), 1000);
     nodeset->server = server;
 
@@ -707,6 +710,17 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
         UA_DataType *type = nodeset->types + cnt;
         if(UA_DATATYPEKIND_ENUM == type->typeKind)
             continue;
+        
+        //binary encoding id
+        UA_Node* node = UA_Nodestore_getNode(UA_Server_getNsCtx(nodeset->server), &type->typeId);
+        if(node)
+        {
+            for(size_t i = 0; i < node->referencesSize; i++)
+            {
+                if(&node->references[i].referenceTypeId)
+            }
+        }
+
         for(size_t i = 0; i < type->membersSize; i++)
         {
             UA_DataTypeMember *m = type->members + i;
