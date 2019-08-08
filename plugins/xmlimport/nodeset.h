@@ -32,6 +32,8 @@ typedef struct TNamespace TNamespace;
 struct Alias;
 typedef struct Alias Alias;
 
+typedef struct DataTypeInternal DataTypeInternal;
+
 Nodeset *
 Nodeset_new(UA_Server *server);
 void
@@ -64,12 +66,12 @@ UA_Node *
 Nodeset_getNode(const Nodeset *nodeset, const UA_NodeId *nodeId);
 void Nodeset_setDisplayname(UA_Node *node, char *s);
 
-UA_DataType *
+DataTypeInternal *
 Nodeset_newDataTypeDefinition(Nodeset *nodeset, const UA_Node *node,
                               int attributeSize, const char **attributes);
 
 void
-Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
+Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, DataTypeInternal *datatype,
                                    int attributeSize, const char **attributes);
 
 void

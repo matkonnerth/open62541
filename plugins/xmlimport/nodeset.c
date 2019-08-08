@@ -91,6 +91,20 @@ typedef struct {
 
 struct MemoryPool;
 
+typedef struct DataTypeMemberExt DataTypeMemberExt;
+
+struct DataTypeMemberExt{
+    DataTypeMemberExt *next;
+    UA_NodeId id;
+    UA_DataTypeMember *member;
+};
+
+
+struct DataTypeInternal{
+    UA_DataType *type;
+    DataTypeMemberExt *m;
+};
+
 struct Nodeset {
     char **countedChars;
     Alias **aliasArray;
@@ -102,11 +116,13 @@ struct Nodeset {
     struct MemoryPool *refPool;
     UA_Server *server;
     size_t typesSize;
-    UA_DataType *types;
+    DataTypeInternal *types;
     const UA_DataTypeArray *customTypes;
 };
 
-// hierachical references
+/* hierachical references and references, that should be linked also in reverse direction.
+    HASENCODING is a non-hierachical reference, but is needed to be linked from Datatype to
+    binary encodig ID */
 UA_NodeId hierachicalRefs[MAX_HIERACHICAL_REFS] = {
     {.namespaceIndex = 0,
      .identifierType = UA_NODEIDTYPE_NUMERIC,
@@ -598,22 +614,23 @@ Nodeset_addRefCountedChar(Nodeset *nodeset, char *newChar) {
     nodeset->countedChars[nodeset->charsSize++] = newChar;
 }
 
-UA_DataType *
+DataTypeInternal *
 Nodeset_newDataTypeDefinition(Nodeset *nodeset, const UA_Node *node,
                               int attributeSize, const char **attributes)
 {
-    UA_DataType*types = (UA_DataType*) UA_realloc(nodeset->types, sizeof(UA_DataType)*(nodeset->typesSize + 1));
-    UA_DataType *newType = &types[nodeset->typesSize];
-    nodeset->types = types;
-    newType->binaryEncodingId = 0;  // to be done after linking references
-    newType->members = NULL;
-    newType->membersSize = 0;
-    newType->memSize = 0;                           //after we have all datatypes
-    newType->overlayable = 0;                       //?
-    newType->pointerFree = 0;                       //?
-    newType->typeId = node->nodeId;
-    newType->typeIndex = (UA_UInt16)nodeset->typesSize;
-    newType->typeKind = UA_DATATYPEKIND_STRUCTURE;  //after linking the nodeset
+    nodeset->types = (DataTypeInternal*) UA_realloc(nodeset->types, sizeof(DataTypeInternal)*(nodeset->typesSize + 1));
+    DataTypeInternal *newType = &nodeset->types[nodeset->typesSize];
+    newType->type = (UA_DataType*)UA_calloc(1, sizeof(UA_DataType));
+    newType->m = NULL;
+    newType->type->binaryEncodingId = 0;  // to be done after linking references
+    newType->type->members = NULL;
+    newType->type->membersSize = 0;
+    newType->type->memSize = 0;                           //after we have all datatypes
+    newType->type->overlayable = 0;                       //?
+    newType->type->pointerFree = 0;                       //?
+    newType->type->typeId = node->nodeId;
+    newType->type->typeIndex = (UA_UInt16)nodeset->typesSize;
+    newType->type->typeKind = UA_DATATYPEKIND_STRUCTURE;  //after linking the nodeset
     nodeset->typesSize++;
     return newType;
 }
@@ -635,23 +652,14 @@ findDataType(const Nodeset* nodeset, const UA_NodeId* id) {
         }
         customTypes = customTypes->next;
     }
-
-    // lookup internal array
-    for(size_t i = 0; i < nodeset->typesSize; i++)
-    {
-        if(UA_NodeId_equal(&nodeset->types[i].typeId, id))
-        {
-            return &nodeset->types[i];
-        }
-    }
     return NULL;
 }
 
 void
-Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
+Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, DataTypeInternal *datatype,
                                    int attributeSize, const char **attributes)
 {
-    if(UA_DATATYPEKIND_ENUM==datatype->typeKind)
+    if(UA_DATATYPEKIND_ENUM==datatype->type->typeKind)
     {
         return;
     }
@@ -661,20 +669,19 @@ Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
                                          attributeSize));
     if(UA_NodeId_equal(&mType, &UA_NODEID_NULL))
     {
-        datatype->typeKind = UA_DATATYPEKIND_ENUM;
-        datatype->overlayable = UA_BINARY_OVERLAYABLE_INTEGER;
-        datatype->pointerFree = true;
-        datatype->typeIndex = UA_TYPES_INT32;
+        datatype->type->typeKind = UA_DATATYPEKIND_ENUM;
+        datatype->type->overlayable = UA_BINARY_OVERLAYABLE_INTEGER;
+        datatype->type->pointerFree = true;
+        datatype->type->typeIndex = UA_TYPES_INT32;
         return;
     }
-    //go on with struct member
-    UA_DataTypeMember* members = (UA_DataTypeMember*)UA_realloc(datatype->members, sizeof(UA_DataTypeMember)*((size_t)datatype->membersSize + 1));
-    UA_DataTypeMember* m = &members[datatype->membersSize];
-    datatype->members = members;
-    // todo copy, otherwise it will crash
 
+
+    //go on with struct member
+    UA_DataTypeMember* members = (UA_DataTypeMember*)UA_realloc(datatype->type->members, sizeof(UA_DataTypeMember)*((size_t)datatype->type->membersSize + 1));
+    UA_DataTypeMember* m = &members[datatype->type->membersSize];
+    datatype->type->members = members;
     char* memberName = getAttributeValue(nodeset, &attrDataTypeField_Name, attributes, attributeSize);
-    
     if(memberName)
     {
         char *memberNameCopy = (char*)UA_calloc(strlen(memberName) + 1, sizeof(char));
@@ -682,13 +689,40 @@ Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, UA_DataType *datatype,
         m->memberName = memberNameCopy;
     }
     m->namespaceZero = mType.namespaceIndex == 0 ? UA_TRUE : UA_FALSE;
+
+    //TODO: extract array
+    m->isArray = false;
     //
     const UA_DataType *memberType = findDataType(nodeset, &mType);
-    if(!memberType)
-        return;
-    m->memberTypeIndex = memberType->typeIndex;
-    datatype->membersSize++;
-    m->isArray = false;
+    if(memberType)
+    {
+        m->memberTypeIndex = memberType->typeIndex;
+    }
+    else
+    {
+        //we add the nodeId to the dependencies of this datatype
+        DataTypeMemberExt* newMember = (DataTypeMemberExt*) UA_calloc(1, sizeof(DataTypeMemberExt));
+        newMember->next = datatype->m;
+        datatype->m = newMember;
+        datatype->m->id= mType;
+        datatype->m->member = m;
+    }
+    datatype->type->membersSize++;
+}
+
+static UA_UInt16 getBinaryEncodingId(const UA_Node* node)
+{
+    if(node)
+    {
+        UA_NodeId encodingRefTyp = UA_NODEID_NUMERIC(0, UA_NS0ID_HASENCODING);
+        for(size_t i = 0; i < node->referencesSize; i++) {
+            if(UA_NodeId_equal(&node->references[i].referenceTypeId, &encodingRefTyp))
+            {
+                return (UA_UInt16) node->references[i].targetIds->nodeId.identifier.numeric;
+            }
+        }
+    }
+    return 0;
 }
 
 void Nodeset_getDataTypes(Nodeset* nodeset)
@@ -707,44 +741,75 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
     size_t structCnt = 0;
     for(size_t cnt = 0; cnt < nodeset->typesSize; cnt++)
     {
-        UA_DataType *type = nodeset->types + cnt;
-        if(UA_DATATYPEKIND_ENUM == type->typeKind)
+        DataTypeInternal *type = nodeset->types + cnt;
+        if(UA_DATATYPEKIND_ENUM == type->type->typeKind)
             continue;
         
         //binary encoding id
-        UA_Node* node = UA_Nodestore_getNode(UA_Server_getNsCtx(nodeset->server), &type->typeId);
-        if(node)
-        {
-            for(size_t i = 0; i < node->referencesSize; i++)
-            {
-                if(&node->references[i].referenceTypeId)
-            }
-        }
-
-        for(size_t i = 0; i < type->membersSize; i++)
-        {
-            UA_DataTypeMember *m = type->members + i;
-            type->memSize = (UA_UInt16)(type->memSize + UA_TYPES[m->memberTypeIndex].memSize);
-            //type->typeIndex
-        }
-
-        //copy over to custom types
+        const UA_Node* node = UA_Nodestore_getNode(UA_Server_getNsCtx(nodeset->server), &type->type->typeId);
+        type->type->binaryEncodingId = getBinaryEncodingId(node);        
         structCnt++;
-    }
+    }    
     
     UA_DataType* newTypes = (UA_DataType*)UA_calloc(structCnt, sizeof(UA_DataType));
 
-    size_t copyCnt=0;
-    for(size_t cnt = 0; cnt < nodeset->typesSize; cnt++)
-    {
-        UA_DataType *type = nodeset->types + cnt;
-        if(UA_DATATYPEKIND_ENUM == type->typeKind)
-            continue;
-        memcpy(newTypes + copyCnt, type, sizeof(UA_DataType));
-        type->typeIndex = (UA_UInt16) copyCnt;
-        copyCnt++;
-    }
 
+    //copy over to custom types
+    size_t copyCnt=0;
+    bool loopOn = false;
+    do
+    {
+        loopOn = false;
+        for(size_t cnt = 0; cnt < nodeset->typesSize; cnt++) {
+            DataTypeInternal *type = nodeset->types + cnt;
+            if(!type->type)
+                continue;
+            if(UA_DATATYPEKIND_ENUM == type->type->typeKind)
+                continue;
+
+            //try lookup in newTypes
+            DataTypeMemberExt *m = type->m;
+            DataTypeMemberExt **prev = &type->m;
+            while(m)
+            {
+                for(size_t j = 0; j < copyCnt; j++)
+                {
+                    if(UA_NodeId_equal(&newTypes[j].typeId, &m->id))
+                    {
+                        m->member->memberTypeIndex = (UA_UInt16)j;
+                        //remove from list
+                        *prev = m->next;
+                    }
+                }
+                prev = &m;
+                m = m->next;
+            }
+            
+            //all membertypes resolved?
+            if(!type->m)
+            {
+                const UA_DataType* typelist[2] = {UA_TYPES, newTypes};
+                //everything should be there to calculate memsize, padding, etc
+                for(UA_DataTypeMember *tm = type->type->members;
+                tm < type->type->members + type->type->membersSize;tm++)
+                {
+                    type->type->memSize = (UA_UInt16)
+                        (type->type->memSize +
+                        typelist[!tm->namespaceZero][tm->memberTypeIndex].memSize);
+                }
+                memcpy(newTypes + copyCnt, type->type, sizeof(UA_DataType));
+                (newTypes+copyCnt)->typeIndex = (UA_UInt16) copyCnt;
+                copyCnt++;
+                type->type = NULL;
+            }
+            else
+            {
+                loopOn = true;
+            }
+        }
+    } while (loopOn);
+
+    //TODO: handle in a better way
     UA_DataTypeArray *newCustomTypes = (UA_DataTypeArray*) UA_calloc(1, sizeof(UA_DataTypeArray));
     newCustomTypes->next = nodeset->customTypes;
     newCustomTypes->types = newTypes;

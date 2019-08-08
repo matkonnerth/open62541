@@ -55,7 +55,7 @@ struct TParserCtx {
     void *userContext;
     char *onCharacters;
     Nodeset *nodeset;
-    UA_DataType *type;
+    DataTypeInternal *type;
 };
 
 struct TParserCtx;
