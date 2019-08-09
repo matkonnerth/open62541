@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "memory.h"
+#include "datatypes.h"
 
 #define MAX_HIERACHICAL_REFS 50
 #define MAX_ALIAS 100
@@ -211,13 +212,25 @@ isNodeId(const char *s) {
 }
 
 static UA_NodeId
-alias2Id(Nodeset *nodeset, const char *alias) {
+alias2Id(const Nodeset *nodeset, const char *alias) {
     for(size_t cnt = 0; cnt < nodeset->aliasSize; cnt++) {
         if(!strcmp(alias, nodeset->aliasArray[cnt]->name)) {
             return nodeset->aliasArray[cnt]->id;
         }
     }
     return UA_NODEID_NULL;
+}
+
+static UA_NodeId getNodeId(const Nodeset* nodeset, char* s)
+{
+    if(!isNodeId(s)) {
+        // try it with alias
+        return translateNodeId(nodeset->namespaceTable->ns, alias2Id(nodeset, s));
+    }
+    else
+    {
+        return extractNodedId(nodeset->namespaceTable->ns, s);
+    }
 }
 
 Nodeset *
@@ -426,13 +439,7 @@ Nodeset_newReference(Nodeset *nodeset, UA_Node *node, int attributeSize,
     }
 
     char *s = getAttributeValue(nodeset, &attrReferenceType, attributes, attributeSize);
-    UA_NodeId refTypeId = UA_NODEID_NULL;
-    if(!isNodeId(s)) {
-        // try it with alias
-        refTypeId = translateNodeId(nodeset->namespaceTable->ns, alias2Id(nodeset, s));
-    } else {
-        refTypeId = extractNodedId(nodeset->namespaceTable->ns, s);
-    }
+    UA_NodeId refTypeId = getNodeId(nodeset, s);
 
     UA_NodeReferenceKind *existingRefs = NULL;
     for(size_t i = 0; i < node->referencesSize; ++i) {
@@ -664,9 +671,8 @@ Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, DataTypeInternal *datatype,
         return;
     }
     UA_NodeId mType =
-        extractNodedId(nodeset->namespaceTable->ns,
-                       getAttributeValue(nodeset, &attrDataTypeField_DataType, attributes,
-                                         attributeSize));
+        getNodeId(nodeset, getAttributeValue(nodeset, &attrDataTypeField_DataType,
+                                             attributes, attributeSize));
     if(UA_NodeId_equal(&mType, &UA_NODEID_NULL))
     {
         datatype->type->typeKind = UA_DATATYPEKIND_ENUM;
@@ -675,8 +681,7 @@ Nodeset_newDataTypeDefinitionField(Nodeset *nodeset, DataTypeInternal *datatype,
         datatype->type->typeIndex = UA_TYPES_INT32;
         return;
     }
-
-
+    
     //go on with struct member
     UA_DataTypeMember* members = (UA_DataTypeMember*)UA_realloc(datatype->type->members, sizeof(UA_DataTypeMember)*((size_t)datatype->type->membersSize + 1));
     UA_DataTypeMember* m = &members[datatype->type->membersSize];
@@ -727,17 +732,6 @@ static UA_UInt16 getBinaryEncodingId(const UA_Node* node)
 
 void Nodeset_getDataTypes(Nodeset* nodeset)
 {
-
-    /*
-    const UA_DataType *typelists = NULL;
-    if(nodeset->customTypes) {
-        const UA_DataType* typelists2[2] = {UA_TYPES, nodeset->customTypes->types};
-        typelists = typelists2;
-    } else {
-        typelists = &UA_TYPES;
-    }
-    */
-
     size_t structCnt = 0;
     for(size_t cnt = 0; cnt < nodeset->typesSize; cnt++)
     {
@@ -747,12 +741,10 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
         
         //binary encoding id
         const UA_Node* node = UA_Nodestore_getNode(UA_Server_getNsCtx(nodeset->server), &type->type->typeId);
-        type->type->binaryEncodingId = getBinaryEncodingId(node);        
+        type->type->binaryEncodingId = getBinaryEncodingId(node);
         structCnt++;
-    }    
-    
+    }
     UA_DataType* newTypes = (UA_DataType*)UA_calloc(structCnt, sizeof(UA_DataType));
-
 
     //copy over to custom types
     size_t copyCnt=0;
@@ -784,19 +776,9 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
                 prev = &m;
                 m = m->next;
             }
-            
-            //all membertypes resolved?
             if(!type->m)
             {
-                const UA_DataType* typelist[2] = {UA_TYPES, newTypes};
-                //everything should be there to calculate memsize, padding, etc
-                for(UA_DataTypeMember *tm = type->type->members;
-                tm < type->type->members + type->type->membersSize;tm++)
-                {
-                    type->type->memSize = (UA_UInt16)
-                        (type->type->memSize +
-                        typelist[!tm->namespaceZero][tm->memberTypeIndex].memSize);
-                }
+                setPaddingMemsize(type->type);
                 memcpy(newTypes + copyCnt, type->type, sizeof(UA_DataType));
                 (newTypes+copyCnt)->typeIndex = (UA_UInt16) copyCnt;
                 copyCnt++;

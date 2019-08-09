@@ -16,10 +16,16 @@ stopHandler(int sig) {
     running = false;
 }
 
+#define alignof(type) offsetof(struct { char c; type d; }, d)
+
 int
 main(int argc, char *argv[]) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
+
+    printf("alignof char: %lu\n", alignof(char));
+    printf("alignof int: %lu\n", alignof(int));
+    printf("alignof int: %lu\n", alignof(double));
 
     UA_Server *server = UA_Server_new();
     UA_ServerConfig_setDefault(UA_Server_getConfig(server));
