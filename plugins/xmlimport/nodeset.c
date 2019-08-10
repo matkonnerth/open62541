@@ -744,7 +744,23 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
         type->type->binaryEncodingId = getBinaryEncodingId(node);
         structCnt++;
     }
-    UA_DataType* newTypes = (UA_DataType*)UA_calloc(structCnt, sizeof(UA_DataType));
+
+    //TODO: handle in a better way
+    UA_DataTypeArray *newCustomTypes =
+        (UA_DataTypeArray *)UA_calloc(1, sizeof(UA_DataTypeArray));
+    newCustomTypes->next = NULL;
+    size_t oldCustomTypesSize = 0;
+    newCustomTypes->types = NULL;
+    if(nodeset->customTypes) {
+        oldCustomTypesSize= nodeset->customTypes->typesSize;
+        newCustomTypes->types = (UA_DataType *)UA_realloc((void*)(uintptr_t)nodeset->customTypes->types, oldCustomTypesSize + structCnt);
+    }
+    else
+    {
+        newCustomTypes->types =
+            (UA_DataType *)UA_calloc(oldCustomTypesSize + structCnt, sizeof(UA_DataType));
+    }
+    UA_DataType *newTypes = (UA_DataType*)(uintptr_t)&newCustomTypes->types[oldCustomTypesSize];
 
     //copy over to custom types
     size_t copyCnt=0;
@@ -778,7 +794,7 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
             }
             if(!type->m)
             {
-                setPaddingMemsize(type->type);
+                setPaddingMemsize(type->type, &UA_TYPES[0], newCustomTypes->types);
                 memcpy(newTypes + copyCnt, type->type, sizeof(UA_DataType));
                 (newTypes+copyCnt)->typeIndex = (UA_UInt16) copyCnt;
                 copyCnt++;
@@ -790,12 +806,5 @@ void Nodeset_getDataTypes(Nodeset* nodeset)
             }
         }
     } while (loopOn);
-
-    //TODO: handle in a better way
-    UA_DataTypeArray *newCustomTypes = (UA_DataTypeArray*) UA_calloc(1, sizeof(UA_DataTypeArray));
-    newCustomTypes->next = nodeset->customTypes;
-    newCustomTypes->types = newTypes;
-    newCustomTypes->typesSize = structCnt;
-
     UA_Server_getConfig(nodeset->server)->customDataTypes = newCustomTypes;
 }
