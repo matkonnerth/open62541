@@ -183,6 +183,8 @@ if(UA_ENABLE_DISCOVERY_MULTICAST)
     add_example(discovery_server_multicast discovery/server_multicast.c)
 endif()
 
+add_example(statemachine statemachine/driver.c statemachine/messageQueue.c statemachine/statemachine.c)
+
 add_subdirectory(nodeset)
 
 ####################
