@@ -24,18 +24,25 @@
  * we will have to create our own event type. `EventTypes` are saved internally as `ObjectTypes`,
  * so add the type as you would a new `ObjectType`. */
 
-static UA_NodeId eventType;
-
 static UA_StatusCode
 addNewEventType(UA_Server *server) {
     UA_ObjectTypeAttributes attr = UA_ObjectTypeAttributes_default;
-    attr.displayName = UA_LOCALIZEDTEXT("en-US", "SimpleEventType");
-    attr.description = UA_LOCALIZEDTEXT("en-US", "The simple event type we created");
-    return UA_Server_addObjectTypeNode(server, UA_NODEID_NULL,
-                                       UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
-                                       UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
-                                       UA_QUALIFIEDNAME(0, "SimpleEventType"),
-                                       attr, NULL, &eventType);
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "TransitionAutomaticEventType");
+    attr.description = UA_LOCALIZEDTEXT("en-US", "signals transition to automatic");
+    UA_StatusCode stat= UA_Server_addObjectTypeNode(
+        server, UA_NODEID_NUMERIC(1, 5000), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+        UA_QUALIFIEDNAME(0, "TransitionAutomaticEventType"), attr, NULL, NULL);
+
+    attr = UA_ObjectTypeAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "TransitionManualEventType");
+    attr.description = UA_LOCALIZEDTEXT("en-US", "signals transition to manual");
+    stat = UA_Server_addObjectTypeNode(
+        server, UA_NODEID_NUMERIC(1, 5001), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+        UA_QUALIFIEDNAME(0, "TransitionAutomaticEventType"), attr, NULL, NULL);
+
+    return stat;
 }
 
 /**
@@ -49,7 +56,7 @@ addNewEventType(UA_Server *server) {
  * to `Time` which is needed to make the example UaExpert compliant.
  */
 static UA_StatusCode
-setUpEvent(UA_Server *server, UA_NodeId *outId) {
+setUpEvent(UA_Server *server, UA_NodeId *outId, const UA_NodeId eventType) {
     UA_StatusCode retval = UA_Server_createEvent(server, eventType, outId);
     if (retval != UA_STATUSCODE_GOOD) {
         UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
@@ -86,7 +93,7 @@ setUpEvent(UA_Server *server, UA_NodeId *outId) {
  * event onto said node. Passing ``NULL`` as the second-last argument means we will not receive the `EventId`.
  * The last boolean argument states whether the node should be deleted. */
 static UA_StatusCode
-generateEventMethodCallback(UA_Server *server,
+generateAutomaticEventMethodCallback(UA_Server *server,
                          const UA_NodeId *sessionId, void *sessionHandle,
                          const UA_NodeId *methodId, void *methodContext,
                          const UA_NodeId *objectId, void *objectContext,
@@ -97,7 +104,7 @@ generateEventMethodCallback(UA_Server *server,
 
     /* set up event */
     UA_NodeId eventNodeId;
-    UA_StatusCode retval = setUpEvent(server, &eventNodeId);
+    UA_StatusCode retval = setUpEvent(server, &eventNodeId, UA_NODEID_NUMERIC(1, 5000));
     if(retval != UA_STATUSCODE_GOOD) {
         UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
                        "Creating event failed. StatusCode %s", UA_StatusCode_name(retval));
@@ -114,6 +121,36 @@ generateEventMethodCallback(UA_Server *server,
     return retval;
 }
 
+static UA_StatusCode
+generateManualEventMethodCallback(UA_Server *server, const UA_NodeId *sessionId,
+                                     void *sessionHandle, const UA_NodeId *methodId,
+                                     void *methodContext, const UA_NodeId *objectId,
+                                     void *objectContext, size_t inputSize,
+                                     const UA_Variant *input, size_t outputSize,
+                                     UA_Variant *output) {
+
+    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Creating event");
+
+    /* set up event */
+    UA_NodeId eventNodeId;
+    UA_StatusCode retval = setUpEvent(server, &eventNodeId, UA_NODEID_NUMERIC(1, 5001));
+    if(retval != UA_STATUSCODE_GOOD) {
+        UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                       "Creating event failed. StatusCode %s",
+                       UA_StatusCode_name(retval));
+        return retval;
+    }
+
+    retval = UA_Server_triggerEvent(server, eventNodeId,
+                                    UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER), NULL, UA_TRUE);
+    if(retval != UA_STATUSCODE_GOOD)
+        UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                       "Triggering event failed. StatusCode %s",
+                       UA_StatusCode_name(retval));
+
+    return retval;
+}
+
 /**
  * Now, all that is left to do is to create a method node which uses our callback. We do not
  * require any input and as output we will be using the `EventId` we receive from ``triggerEvent``. The `EventId` is
@@ -123,18 +160,32 @@ generateEventMethodCallback(UA_Server *server,
  */
 
 static void
-addGenerateEventMethod(UA_Server *server) {
+addGenerateAutomaticEventMethod(UA_Server *server) {
     UA_MethodAttributes generateAttr = UA_MethodAttributes_default;
-    generateAttr.description = UA_LOCALIZEDTEXT("en-US","Generate an event.");
-    generateAttr.displayName = UA_LOCALIZEDTEXT("en-US","Generate Event");
+    generateAttr.description = UA_LOCALIZEDTEXT("en-US","Request_Automatic");
+    generateAttr.displayName = UA_LOCALIZEDTEXT("en-US","Request_Automatic");
     generateAttr.executable = true;
     generateAttr.userExecutable = true;
-    UA_Server_addMethodNode(server, UA_NODEID_NUMERIC(1, 62541),
+    UA_Server_addMethodNode(server, UA_NODEID_NUMERIC(1, 6000),
                             UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
                             UA_NODEID_NUMERIC(0, UA_NS0ID_HASORDEREDCOMPONENT),
-                            UA_QUALIFIEDNAME(1, "Generate Event"),
-                            generateAttr, &generateEventMethodCallback,
+                            UA_QUALIFIEDNAME(1, "Request_Automatic"),
+                            generateAttr, &generateAutomaticEventMethodCallback,
                             0, NULL, 0, NULL, NULL, NULL);
+}
+
+static void
+addGenerateManualEventMethod(UA_Server *server) {
+    UA_MethodAttributes generateAttr = UA_MethodAttributes_default;
+    generateAttr.description = UA_LOCALIZEDTEXT("en-US", "Request_Manual");
+    generateAttr.displayName = UA_LOCALIZEDTEXT("en-US", "Request_Manual");
+    generateAttr.executable = true;
+    generateAttr.userExecutable = true;
+    UA_Server_addMethodNode(
+        server, UA_NODEID_NUMERIC(1, 6001), UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASORDEREDCOMPONENT),
+        UA_QUALIFIEDNAME(1, "Request_Manual"), generateAttr,
+        &generateManualEventMethodCallback, 0, NULL, 0, NULL, NULL, NULL);
 }
 
 /** It follows the main server code, making use of the above definitions. */
@@ -153,7 +204,8 @@ int main (void) {
     UA_ServerConfig_setDefault(UA_Server_getConfig(server));
 
     addNewEventType(server);
-    addGenerateEventMethod(server);
+    addGenerateAutomaticEventMethod(server);
+    addGenerateManualEventMethod(server);
 
     UA_StatusCode retval = UA_Server_run(server, &running);
 

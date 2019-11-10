@@ -18,44 +18,73 @@ void Statemachine_new(struct Statemachine **sm)
     assert(*sm);
     MessageQueue_new(&(*sm)->externalEvents);
     MessageQueue_new(&(*sm)->generatedEvents);
-    (*sm)->state = MANUAL;
+    (*sm)->state = STATE_MANUAL;
 }
 
 void Statemachine_process(struct Statemachine *sm)
 {
-    enum ExternalEvent* ev = (enum ExternalEvent*) MessageQueue_dequeue(sm->externalEvents);
+    enum IncomingEvent* ev = (enum IncomingEvent*) MessageQueue_dequeue(sm->externalEvents);
     while(ev)
     {
         switch(sm->state)
         {
-            case MANUAL:
-                if(*ev==REQUEST_AUTOMATIC)
-                {
+            case STATE_MANUAL:
+                if(*ev == IN_REQUEST_AUTOMATIC) {
+                    printf("request to automatic\n");
+                    enum OutgoingEvent *data =
+                        (enum OutgoingEvent*)malloc(sizeof(enum OutgoingEvent));
+                    *data = OUT_REQUEST_AUTOMATIC;
+                    MessageQueue_enqueue(sm->generatedEvents, data);
+                    sm->state = STATE_REQUEST_AUTOMATIC;
+                }
+                break;
+            case STATE_REQUEST_AUTOMATIC:
+                if(*ev == IN_TRANSITION_AUTOMATIC) {
                     printf("transition to automatic\n");
-                    sm->state=AUTOMATIC;
+                    sm->state = STATE_AUTOMATIC;
                 }
                 break;
-            case AUTOMATIC:
-                if(*ev==REQUEST_MANUAL)
+            case STATE_AUTOMATIC:
+                if(*ev==IN_REQUEST_MANUAL)
                 {
-                    printf("transition to manual\n");
-                    sm->state=MANUAL;
+                    printf("request for manual\n");
+                    enum OutgoingEvent *data =
+                        (enum OutgoingEvent *)malloc(sizeof(enum OutgoingEvent));
+                    *data = OUT_REQUEST_MANUAL;
+                    MessageQueue_enqueue(sm->generatedEvents, data);
+                    sm->state=STATE_REQUEST_MANUAL;
                 }
                 break;
+            case STATE_REQUEST_MANUAL:
+                if(*ev == IN_TRANSITION_MANUAL) {
+                    printf("transition to manual\n");
+                    sm->state = STATE_MANUAL;
+                }
+                break;
+
             default:
                 assert(false);
         }
-        ev = (enum ExternalEvent *)MessageQueue_dequeue(sm->externalEvents);
+        ev = (enum IncomingEvent *)MessageQueue_dequeue(sm->externalEvents);
     }
 }
 
 void
-Statemachine_setInputEvent(struct Statemachine *sm, enum ExternalEvent ev)
+Statemachine_setInputEvent(struct Statemachine *sm, enum IncomingEvent ev)
 {
-    enum ExternalEvent* data = (enum ExternalEvent*)malloc(sizeof(enum ExternalEvent));
+    enum IncomingEvent* data = (enum IncomingEvent*)malloc(sizeof(enum IncomingEvent));
     assert(data);
     *data = ev;
     MessageQueue_enqueue(sm->externalEvents, data);
+}
+
+enum OutgoingEvent
+Statemachine_getOutputEvent(struct Statemachine *sm)
+{
+    enum OutgoingEvent* ev = (enum OutgoingEvent*) MessageQueue_dequeue(sm->generatedEvents);
+    if(ev)
+        return *ev;
+    return OUT_REQUEST_EMPTY;
 }
 
 enum State Statemachine_getState(const struct Statemachine* sm)

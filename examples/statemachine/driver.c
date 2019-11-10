@@ -4,6 +4,7 @@
 #include <open62541/client.h>
 #include <open62541/client_config_default.h>
 #include <open62541/client_highlevel.h>
+#include <open62541/client_highlevel_async.h>
 #include <open62541/client_subscriptions.h>
 #include <open62541/plugin/log_stdout.h>
 #include <open62541/server.h>
@@ -11,6 +12,7 @@
 #include <open62541/util.h>
 
 #include <signal.h>
+
 #include "statemachine.h"
 
 #ifdef _MSC_VER
@@ -39,38 +41,26 @@ static void
 handler_events(UA_Client *client, UA_UInt32 subId, void *subContext,
                UA_UInt32 monId, void *monContext,
                size_t nEventFields, UA_Variant *eventFields) {
-    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Notification");
+    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Event received");
 
-    if(Statemachine_getState(sm) == AUTOMATIC)
-    {
-        Statemachine_setInputEvent(sm, REQUEST_MANUAL);
-    }
-
-    if(Statemachine_getState(sm) == MANUAL) {
-        Statemachine_setInputEvent(sm, REQUEST_AUTOMATIC);
-    }
 
     /* The context should point to the monId on the stack */
     UA_assert(*(UA_UInt32*)monContext == monId);
 
-    for(size_t i = 0; i < nEventFields; ++i) {
-        if(UA_Variant_hasScalarType(&eventFields[i], &UA_TYPES[UA_TYPES_UINT16])) {
-            UA_UInt16 severity = *(UA_UInt16 *)eventFields[i].data;
-            UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Severity: %u", severity);
-        } else if (UA_Variant_hasScalarType(&eventFields[i], &UA_TYPES[UA_TYPES_LOCALIZEDTEXT])) {
-            UA_LocalizedText *lt = (UA_LocalizedText *)eventFields[i].data;
+    //ugly
+    if(UA_Variant_hasScalarType(&eventFields[0], &UA_TYPES[UA_TYPES_NODEID]))
+    {
+        UA_NodeId automatic = UA_NODEID_NUMERIC(1, 5000);
+        UA_NodeId manual = UA_NODEID_NUMERIC(1, 5001);
+        if(UA_NodeId_equal(&automatic, (UA_NodeId *)eventFields[0].data)) {
+            Statemachine_setInputEvent(sm, IN_TRANSITION_AUTOMATIC);
             UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
-                        "Message: '%.*s'", (int)lt->text.length, lt->text.data);
+                        "EventType request automatic");
         }
-        else {
-#ifdef UA_ENABLE_TYPEDESCRIPTION
+        if(UA_NodeId_equal(&manual, (UA_NodeId *)eventFields[0].data)) {
+            Statemachine_setInputEvent(sm, IN_TRANSITION_MANUAL);
             UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
-                        "Don't know how to handle type: '%s'", eventFields[i].type->typeName);
-#else
-            UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
-                        "Don't know how to handle type, enable UA_ENABLE_TYPEDESCRIPTION "
-                        "for typename");
-#endif
+                        "EventType request manual");
         }
     }
 }
@@ -97,7 +87,7 @@ setupSelectClauses(void) {
         return NULL;
     }
     selectClauses[0].attributeId = UA_ATTRIBUTEID_VALUE;
-    selectClauses[0].browsePath[0] = UA_QUALIFIEDNAME_ALLOC(0, "Message");
+    selectClauses[0].browsePath[0] = UA_QUALIFIEDNAME_ALLOC(0, "EventType");
 
     selectClauses[1].typeDefinitionId = UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE);
     selectClauses[1].browsePathSize = 1;
@@ -108,12 +98,68 @@ setupSelectClauses(void) {
         return NULL;
     }
     selectClauses[1].attributeId = UA_ATTRIBUTEID_VALUE;
-    selectClauses[1].browsePath[0] = UA_QUALIFIEDNAME_ALLOC(0, "Severity");
+    selectClauses[1].browsePath[0] = UA_QUALIFIEDNAME_ALLOC(0, "Message");
 
     return selectClauses;
 }
 
 #endif
+
+static UA_StatusCode
+requestAutomaticMethodCallback(UA_Server *server, const UA_NodeId *sessionId,
+                               void *sessionHandle, const UA_NodeId *methodId,
+                               void *methodContext, const UA_NodeId *objectId,
+                               void *objectContext, size_t inputSize,
+                               const UA_Variant *input, size_t outputSize,
+                               UA_Variant *output) {
+
+    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Request automatic from user");
+    Statemachine_setInputEvent(sm, IN_REQUEST_AUTOMATIC);
+
+    return UA_STATUSCODE_GOOD;
+}
+
+static UA_StatusCode
+requestManualMethodCallback(UA_Server *server, const UA_NodeId *sessionId,
+                               void *sessionHandle, const UA_NodeId *methodId,
+                               void *methodContext, const UA_NodeId *objectId,
+                               void *objectContext, size_t inputSize,
+                               const UA_Variant *input, size_t outputSize,
+                               UA_Variant *output) {
+
+    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Request manual from user");
+    Statemachine_setInputEvent(sm, IN_REQUEST_MANUAL);
+
+    return UA_STATUSCODE_GOOD;
+}
+
+static void
+addRequestAutomaticMethod(UA_Server *server) {
+    UA_MethodAttributes generateAttr = UA_MethodAttributes_default;
+    generateAttr.description = UA_LOCALIZEDTEXT("en-US", "Request_Automatic");
+    generateAttr.displayName = UA_LOCALIZEDTEXT("en-US", "Request_Automatic");
+    generateAttr.executable = true;
+    generateAttr.userExecutable = true;
+    UA_Server_addMethodNode(
+        server, UA_NODEID_NUMERIC(1, 6001), UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASORDEREDCOMPONENT),
+        UA_QUALIFIEDNAME(1, "Request_Automatic"), generateAttr,
+        &requestAutomaticMethodCallback, 0, NULL, 0, NULL, NULL, NULL);
+}
+
+static void
+addRequestManualMethod(UA_Server *server) {
+    UA_MethodAttributes generateAttr = UA_MethodAttributes_default;
+    generateAttr.description = UA_LOCALIZEDTEXT("en-US", "Request_Manual");
+    generateAttr.displayName = UA_LOCALIZEDTEXT("en-US", "Request_Manual");
+    generateAttr.executable = true;
+    generateAttr.userExecutable = true;
+    UA_Server_addMethodNode(
+        server, UA_NODEID_NUMERIC(1, 6002), UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASORDEREDCOMPONENT),
+        UA_QUALIFIEDNAME(1, "Request_Manual"), generateAttr,
+        &requestManualMethodCallback, 0, NULL, 0, NULL, NULL, NULL);
+}
 
 int main(int argc, char *argv[]) {
     signal(SIGINT, stopHandler);
@@ -128,16 +174,12 @@ int main(int argc, char *argv[]) {
 
     UA_Server *server = UA_Server_new();
     UA_ServerConfig_setMinimal(UA_Server_getConfig(server), 4844, NULL);
+    addRequestAutomaticMethod(server);
+    addRequestManualMethod(server);
     UA_Server_run_startup(server);
-    //addGenerateEventMethod(server);
-
-
 
     UA_Client *client = UA_Client_new();
     UA_ClientConfig_setDefault(UA_Client_getConfig(client));
-
-
-
     
 
     /* opc.tcp://uademo.prosysopc.com:53530/OPCUA/SimulationServer */
@@ -200,8 +242,28 @@ int main(int argc, char *argv[]) {
         retval = UA_Client_run_iterate(client, 0);
         retval = UA_Server_run_iterate(server, false);
         Statemachine_process(sm);
+        enum OutgoingEvent ev = Statemachine_getOutputEvent(sm);
+        while(ev!=OUT_REQUEST_EMPTY)
+        {            
+            switch(ev)
+            {
+                case OUT_REQUEST_AUTOMATIC:
+                    UA_Client_call_async(client,
+                                         UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+                                         UA_NODEID_NUMERIC(1, 6000), 0, NULL, NULL
+                                         , NULL, NULL);
+                    break;
+                case OUT_REQUEST_MANUAL:
+                    UA_Client_call_async(
+                        client, UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+                        UA_NODEID_NUMERIC(1, 6001), 0, NULL, NULL, NULL, NULL);
+                    break;
+                case OUT_REQUEST_EMPTY:
+                    break;
+            }
+            ev = Statemachine_getOutputEvent(sm);
+        }
     }
-        
 
     /* Delete the subscription */
  cleanup:
