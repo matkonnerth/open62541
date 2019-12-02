@@ -184,6 +184,7 @@ if(UA_ENABLE_DISCOVERY_MULTICAST)
 endif()
 
 add_example(statemachine statemachine/driver.c statemachine/messageQueue.c statemachine/statemachine.c)
+add_example(pushbutton pushbuttons.c)
 
 add_subdirectory(nodeset)
 
