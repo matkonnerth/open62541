@@ -53,14 +53,17 @@ handler_events(UA_Client *client, UA_UInt32 subId, void *subContext,
         UA_NodeId automatic = UA_NODEID_NUMERIC(1, 5000);
         UA_NodeId manual = UA_NODEID_NUMERIC(1, 5001);
         if(UA_NodeId_equal(&automatic, (UA_NodeId *)eventFields[0].data)) {
-            Statemachine_setInputEvent(sm, IN_TRANSITION_AUTOMATIC);
+            struct Message m = {IN_TRANSITION_AUTOMATIC, *(int*)UA_Client_getContext(client)};
+            Statemachine_setInputEvent(sm, m);
             UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
-                        "EventType request automatic");
+                        "EventType confirm automatic");
         }
         if(UA_NodeId_equal(&manual, (UA_NodeId *)eventFields[0].data)) {
-            Statemachine_setInputEvent(sm, IN_TRANSITION_MANUAL);
+            struct Message m = {IN_TRANSITION_MANUAL,
+                                *(int *)UA_Client_getContext(client)};
+            Statemachine_setInputEvent(sm, m);
             UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
-                        "EventType request manual");
+                        "EventType confirm manual");
         }
     }
 }
@@ -114,7 +117,8 @@ requestAutomaticMethodCallback(UA_Server *server, const UA_NodeId *sessionId,
                                UA_Variant *output) {
 
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Request automatic from user");
-    Statemachine_setInputEvent(sm, IN_REQUEST_AUTOMATIC);
+    struct Message m ={IN_REQUEST_AUTOMATIC,0};
+    Statemachine_setInputEvent(sm, m);
 
     return UA_STATUSCODE_GOOD;
 }
@@ -128,7 +132,8 @@ requestManualMethodCallback(UA_Server *server, const UA_NodeId *sessionId,
                                UA_Variant *output) {
 
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Request manual from user");
-    Statemachine_setInputEvent(sm, IN_REQUEST_MANUAL);
+    struct Message m = {IN_REQUEST_MANUAL, 0};
+    Statemachine_setInputEvent(sm, m);
 
     return UA_STATUSCODE_GOOD;
 }
@@ -161,11 +166,105 @@ addRequestManualMethod(UA_Server *server) {
         &requestManualMethodCallback, 0, NULL, 0, NULL, NULL, NULL);
 }
 
+static UA_StatusCode
+addNewEventType(UA_Server *server) {
+    UA_ObjectTypeAttributes attr = UA_ObjectTypeAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "TransitionAutomaticEventType");
+    attr.description = UA_LOCALIZEDTEXT("en-US", "signals transition to automatic");
+    UA_StatusCode stat = UA_Server_addObjectTypeNode(
+        server, UA_NODEID_NUMERIC(1, 5000), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+        UA_QUALIFIEDNAME(0, "TransitionAutomaticEventType"), attr, NULL, NULL);
+
+    attr = UA_ObjectTypeAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "TransitionManualEventType");
+    attr.description = UA_LOCALIZEDTEXT("en-US", "signals transition to manual");
+    stat = UA_Server_addObjectTypeNode(
+        server, UA_NODEID_NUMERIC(1, 5001), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+        UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
+        UA_QUALIFIEDNAME(0, "TransitionAutomaticEventType"), attr, NULL, NULL);
+
+    return stat;
+}
+
+static UA_StatusCode
+setUpEvent(UA_Server *server, UA_NodeId *outId, const UA_NodeId eventType) {
+    UA_StatusCode retval = UA_Server_createEvent(server, eventType, outId);
+    if(retval != UA_STATUSCODE_GOOD) {
+        UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_SERVER,
+                       "createEvent failed. StatusCode %s", UA_StatusCode_name(retval));
+        return retval;
+    }
+
+    /* Set the Event Attributes */
+    /* Setting the Time is required or else the event will not show up in UAExpert! */
+    UA_DateTime eventTime = UA_DateTime_now();
+    UA_Server_writeObjectProperty_scalar(server, *outId, UA_QUALIFIEDNAME(0, "Time"),
+                                         &eventTime, &UA_TYPES[UA_TYPES_DATETIME]);
+
+    UA_UInt16 eventSeverity = 100;
+    UA_Server_writeObjectProperty_scalar(server, *outId, UA_QUALIFIEDNAME(0, "Severity"),
+                                         &eventSeverity, &UA_TYPES[UA_TYPES_UINT16]);
+
+    UA_LocalizedText eventMessage =
+        UA_LOCALIZEDTEXT("en-US", "An event has been generated.");
+    UA_Server_writeObjectProperty_scalar(server, *outId, UA_QUALIFIEDNAME(0, "Message"),
+                                         &eventMessage,
+                                         &UA_TYPES[UA_TYPES_LOCALIZEDTEXT]);
+
+    UA_String eventSourceName = UA_STRING("Server");
+    UA_Server_writeObjectProperty_scalar(server, *outId,
+                                         UA_QUALIFIEDNAME(0, "SourceName"),
+                                         &eventSourceName, &UA_TYPES[UA_TYPES_STRING]);
+
+    return UA_STATUSCODE_GOOD;
+}
+
+static void generateAutomaticTransitionEventfinished(UA_Server* server)
+{
+    UA_NodeId eventNodeId;
+    UA_StatusCode retval = setUpEvent(server, &eventNodeId, UA_NODEID_NUMERIC(1, 5001));
+    if(retval != UA_STATUSCODE_GOOD) {
+        UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                       "Creating event failed. StatusCode %s",
+                       UA_StatusCode_name(retval));
+    }
+
+    retval = UA_Server_triggerEvent(server, eventNodeId,
+                                    UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER), NULL, UA_TRUE);
+    if(retval != UA_STATUSCODE_GOOD)
+        UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                       "Triggering event failed. StatusCode %s",
+                       UA_StatusCode_name(retval));
+}
+
+static void
+generateManualTransitionEventfinished(UA_Server *server) {
+    UA_NodeId eventNodeId;
+    UA_StatusCode retval = setUpEvent(server, &eventNodeId, UA_NODEID_NUMERIC(1, 5000));
+    if(retval != UA_STATUSCODE_GOOD) {
+        UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                       "Creating event failed. StatusCode %s",
+                       UA_StatusCode_name(retval));
+    }
+
+    retval = UA_Server_triggerEvent(server, eventNodeId,
+                                    UA_NODEID_NUMERIC(0, UA_NS0ID_SERVER), NULL, UA_TRUE);
+    if(retval != UA_STATUSCODE_GOOD)
+        UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                       "Triggering event failed. StatusCode %s",
+                       UA_StatusCode_name(retval));
+}
+
 int main(int argc, char *argv[]) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
 
     Statemachine_new(&sm);
+    Statemachine_addSubstatemachine(sm);
+    Statemachine_addSubstatemachine(sm);
+
+    int ids[2] ={0,1};
 
     if(argc < 2) {
         printf("Usage: statemachine <opc.tcp://server-url>\n");
@@ -176,103 +275,129 @@ int main(int argc, char *argv[]) {
     UA_ServerConfig_setMinimal(UA_Server_getConfig(server), 4844, NULL);
     addRequestAutomaticMethod(server);
     addRequestManualMethod(server);
+    addNewEventType(server);
     UA_Server_run_startup(server);
 
-    UA_Client *client = UA_Client_new();
-    UA_ClientConfig_setDefault(UA_Client_getConfig(client));
+    UA_Client* clients[2];
+    for(size_t i=0;i<2;i++)
+    {
+        UA_Client *client = UA_Client_new();
+        UA_ClientConfig_setDefault(UA_Client_getConfig(client));
+        clients[i] = client;
+        UA_Client_getConfig(client)->clientContext = &ids[i];
+
+        UA_StatusCode retval = UA_Client_connect(client, argv[1]);
+        if(retval != UA_STATUSCODE_GOOD) {
+            UA_Client_delete(client);
+            return EXIT_FAILURE;
+        }
+        /* Create a subscription */
+        UA_CreateSubscriptionRequest request = UA_CreateSubscriptionRequest_default();
+        UA_CreateSubscriptionResponse response =
+            UA_Client_Subscriptions_create(client, request, NULL, NULL, NULL);
+        if(response.responseHeader.serviceResult != UA_STATUSCODE_GOOD) {
+            UA_Client_disconnect(client);
+            UA_Client_delete(client);
+            return EXIT_FAILURE;
+        }
+        UA_UInt32 subId = response.subscriptionId;
+        UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                    "Create subscription succeeded, id %u", subId);
+
+        /* Add a MonitoredItem */
+        UA_MonitoredItemCreateRequest item;
+        UA_MonitoredItemCreateRequest_init(&item);
+        item.itemToMonitor.nodeId = UA_NODEID_NUMERIC(0, 2253);  // Root->Objects->Server
+        item.itemToMonitor.attributeId = UA_ATTRIBUTEID_EVENTNOTIFIER;
+        item.monitoringMode = UA_MONITORINGMODE_REPORTING;
+
+        UA_EventFilter filter;
+        UA_EventFilter_init(&filter);
+        filter.selectClauses = setupSelectClauses();
+        filter.selectClausesSize = nSelectClauses;
+
+        item.requestedParameters.filter.encoding = UA_EXTENSIONOBJECT_DECODED;
+        item.requestedParameters.filter.content.decoded.data = &filter;
+        item.requestedParameters.filter.content.decoded.type =
+            &UA_TYPES[UA_TYPES_EVENTFILTER];
+
+        UA_UInt32 monId = 0;
+
+        UA_MonitoredItemCreateResult result = UA_Client_MonitoredItems_createEvent(
+            client, subId, UA_TIMESTAMPSTORETURN_BOTH, item, &monId, handler_events,
+            NULL);
+
+        if(result.statusCode != UA_STATUSCODE_GOOD) {
+            UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                        "Could not add the MonitoredItem with %s",
+                        UA_StatusCode_name(retval));
+            goto cleanup;
+        } else {
+            UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                        "Monitoring 'Root->Objects->Server', id %u",
+                        response.subscriptionId);
+        }
+
+        monId = result.monitoredItemId;
+    }
+    
     
 
-    /* opc.tcp://uademo.prosysopc.com:53530/OPCUA/SimulationServer */
-    /* opc.tcp://opcua.demo-this.com:51210/UA/SampleServer */
-    UA_StatusCode retval = UA_Client_connect(client, argv[1]);
-    if(retval != UA_STATUSCODE_GOOD) {
-        UA_Client_delete(client);
-        return EXIT_FAILURE;
-    }
+    
 
-#ifdef UA_ENABLE_SUBSCRIPTIONS
-    /* Create a subscription */
-    UA_CreateSubscriptionRequest request = UA_CreateSubscriptionRequest_default();
-    UA_CreateSubscriptionResponse response = UA_Client_Subscriptions_create(client, request,
-                                                                            NULL, NULL, NULL);
-    if(response.responseHeader.serviceResult != UA_STATUSCODE_GOOD) {
-        UA_Client_disconnect(client);
-        UA_Client_delete(client);
-        return EXIT_FAILURE;
-    }
-    UA_UInt32 subId = response.subscriptionId;
-    UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "Create subscription succeeded, id %u", subId);
 
-    /* Add a MonitoredItem */
-    UA_MonitoredItemCreateRequest item;
-    UA_MonitoredItemCreateRequest_init(&item);
-    item.itemToMonitor.nodeId = UA_NODEID_NUMERIC(0, 2253); // Root->Objects->Server
-    item.itemToMonitor.attributeId = UA_ATTRIBUTEID_EVENTNOTIFIER;
-    item.monitoringMode = UA_MONITORINGMODE_REPORTING;
-
-    UA_EventFilter filter;
-    UA_EventFilter_init(&filter);
-    filter.selectClauses = setupSelectClauses();
-    filter.selectClausesSize = nSelectClauses;
-
-    item.requestedParameters.filter.encoding = UA_EXTENSIONOBJECT_DECODED;
-    item.requestedParameters.filter.content.decoded.data = &filter;
-    item.requestedParameters.filter.content.decoded.type = &UA_TYPES[UA_TYPES_EVENTFILTER];
-
-    UA_UInt32 monId = 0;
-
-    UA_MonitoredItemCreateResult result =
-        UA_Client_MonitoredItems_createEvent(client, subId,
-                                             UA_TIMESTAMPSTORETURN_BOTH, item,
-                                             &monId, handler_events, NULL);
-
-    if(result.statusCode != UA_STATUSCODE_GOOD) {
-        UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
-                    "Could not add the MonitoredItem with %s", UA_StatusCode_name(retval));
-        goto cleanup;
-    } else {
-        UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
-                    "Monitoring 'Root->Objects->Server', id %u", response.subscriptionId);
-    }
-
-    monId = result.monitoredItemId;
+    
 
     while(running)
     {
-        retval = UA_Client_run_iterate(client, 0);
-        retval = UA_Server_run_iterate(server, false);
+        UA_Client_run_iterate(clients[0], 10);
+        UA_Client_run_iterate(clients[1], 10);
+        UA_Server_run_iterate(server, false);
         Statemachine_process(sm);
-        enum OutgoingEvent ev = Statemachine_getOutputEvent(sm);
-        while(ev!=OUT_REQUEST_EMPTY)
+        struct Message m = Statemachine_getOutputEvent(sm);
+        while(m.id!=OUT_REQUEST_EMPTY)
         {            
-            switch(ev)
+            switch(m.id)
             {
                 case OUT_REQUEST_AUTOMATIC:
-                    UA_Client_call_async(client,
+                    UA_Client_call_async(clients[m.subId],
                                          UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
                                          UA_NODEID_NUMERIC(1, 6000), 0, NULL, NULL
                                          , NULL, NULL);
                     break;
                 case OUT_REQUEST_MANUAL:
                     UA_Client_call_async(
-                        client, UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+                        clients[m.subId], UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
                         UA_NODEID_NUMERIC(1, 6001), 0, NULL, NULL, NULL, NULL);
                     break;
+                case OUT_TRANSITION_AUTOMATIC_FINISHED:
+                    generateAutomaticTransitionEventfinished(server);
+                    break;
+                case OUT_TRANSITION_MANUAL_FINISHED:
+                    generateManualTransitionEventfinished(server);
                 case OUT_REQUEST_EMPTY:
                     break;
+                case UNDEFINED:
+                case IN_REQUEST_MANUAL:
+                case IN_REQUEST_AUTOMATIC:
+                case IN_TRANSITION_AUTOMATIC:
+                case IN_TRANSITION_MANUAL:
+                    break;
             }
-            ev = Statemachine_getOutputEvent(sm);
+            m = Statemachine_getOutputEvent(sm);
         }
     }
 
     /* Delete the subscription */
  cleanup:
-    UA_MonitoredItemCreateResult_clear(&result);
-    UA_Client_Subscriptions_deleteSingle(client, response.subscriptionId);
-    UA_Array_delete(filter.selectClauses, nSelectClauses, &UA_TYPES[UA_TYPES_SIMPLEATTRIBUTEOPERAND]);
-#endif
+    //UA_MonitoredItemCreateResult_clear(&result);
+    //UA_Client_Subscriptions_deleteSingle(client, response.subscriptionId);
+    //UA_Array_delete(filter.selectClauses, nSelectClauses, &UA_TYPES[UA_TYPES_SIMPLEATTRIBUTEOPERAND]);
 
-    UA_Client_disconnect(client);
-    UA_Client_delete(client);
-    return retval == UA_STATUSCODE_GOOD ? EXIT_SUCCESS : EXIT_FAILURE;
+
+    UA_Client_disconnect(clients[0]);
+    UA_Client_disconnect(clients[1]);
+    UA_Client_delete(clients[0]);
+    UA_Client_delete(clients[1]);
+    return EXIT_SUCCESS;
 }
