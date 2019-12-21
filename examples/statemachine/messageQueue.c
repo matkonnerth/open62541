@@ -3,17 +3,13 @@
 #include <assert.h>
 #include "messageQueue.h"
 
-struct Message
-{
-    void* data;
-    struct Message* next;
-};
+#define CAPACITY 16
 
 struct MessageQueue
 {
-    size_t cnt;
-    struct Message* messages;
-    struct Message* last;
+    size_t readIdx;
+    size_t writeIdx;
+    struct Message messages[CAPACITY];
 };
 
 void MessageQueue_new(struct MessageQueue **queue)
@@ -21,39 +17,28 @@ void MessageQueue_new(struct MessageQueue **queue)
     *queue = (struct MessageQueue*)calloc(sizeof(struct MessageQueue), 1);
 }
 
-void MessageQueue_enqueue(struct MessageQueue *queue, void *data)
+void MessageQueue_enqueue(struct MessageQueue *queue, const struct Message *m)
 {
     assert(queue);
-    struct Message* m = (struct Message*)calloc(sizeof(struct Message), 1);
     assert(m);
-    m->data=data;
-    if(queue->last)
-    {
-        queue->last->next = m;
-        queue->last = m;
-    }
-    else
-    {
-        queue->messages = m;
-        queue->last = m;
-    }
-    queue->cnt++;
+    size_t in = queue->writeIdx - queue->readIdx;
+    if(in==CAPACITY)
+        return;
+
+    size_t i = (queue->writeIdx)++ & (CAPACITY-1);
+    queue->messages[i]= *m;
 }
 
-void *MessageQueue_dequeue(struct MessageQueue *queue)
+struct Message MessageQueue_dequeue(struct MessageQueue *queue)
 {
     assert(queue);
-    if(queue->messages)
+    size_t in = queue->writeIdx - queue->readIdx;
+    if(in==0)
     {
-        void* data = queue->messages->data;
-        queue->messages = queue->messages->next;
-        queue->cnt--;
-        if(queue->cnt==0)
-        {
-            queue->last = NULL;
-        }
-        return data;
+        struct Message empty = {EMPTY, 0};
+        return empty;
     }
-    return NULL;
+    size_t i = (queue->readIdx)++ & (CAPACITY - 1);
+    return queue->messages[i];
 }
 

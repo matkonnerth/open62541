@@ -85,6 +85,7 @@ setUpEvent(UA_Server *server, UA_NodeId *outId, const UA_NodeId eventType) {
     return UA_STATUSCODE_GOOD;
 }
 
+bool bad = false;
 /**
  * Triggering an event
  * ^^^^^^^^^^^^^^^^^^^
@@ -104,7 +105,18 @@ generateAutomaticEventMethodCallback(UA_Server *server,
 
     /* set up event */
     UA_NodeId eventNodeId;
-    UA_StatusCode retval = setUpEvent(server, &eventNodeId, UA_NODEID_NUMERIC(1, 5000));
+    UA_StatusCode retval;
+    if(!bad) 
+    {
+        retval = setUpEvent(server, &eventNodeId, UA_NODEID_NUMERIC(1, 5000));
+        bad = true;
+    }
+    else
+    {
+        retval = setUpEvent(server, &eventNodeId, UA_NODEID_NUMERIC(1, 5001));
+        bad = false;
+    }
+
     if(retval != UA_STATUSCODE_GOOD) {
         UA_LOG_WARNING(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
                        "Creating event failed. StatusCode %s", UA_StatusCode_name(retval));
@@ -195,13 +207,18 @@ static void stopHandler(int sig) {
     running = false;
 }
 
-int main (void) {
+int main (int argc, char* argv[]) {
     /* default server values */
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
 
+    if(argc < 2) {
+        printf("Usage: tutorial_server_events port\n");
+        return EXIT_FAILURE;
+    }
+
     UA_Server *server = UA_Server_new();
-    UA_ServerConfig_setDefault(UA_Server_getConfig(server));
+    UA_ServerConfig_setMinimal(UA_Server_getConfig(server), (UA_UInt16) atoi(argv[1]), NULL);
 
     addNewEventType(server);
     addGenerateAutomaticEventMethod(server);

@@ -172,7 +172,7 @@ addNewEventType(UA_Server *server) {
     attr.displayName = UA_LOCALIZEDTEXT("en-US", "TransitionAutomaticEventType");
     attr.description = UA_LOCALIZEDTEXT("en-US", "signals transition to automatic");
     UA_StatusCode stat = UA_Server_addObjectTypeNode(
-        server, UA_NODEID_NUMERIC(1, 5000), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+        server, UA_NODEID_NUMERIC(1, 5001), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
         UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
         UA_QUALIFIEDNAME(0, "TransitionAutomaticEventType"), attr, NULL, NULL);
 
@@ -180,7 +180,7 @@ addNewEventType(UA_Server *server) {
     attr.displayName = UA_LOCALIZEDTEXT("en-US", "TransitionManualEventType");
     attr.description = UA_LOCALIZEDTEXT("en-US", "signals transition to manual");
     stat = UA_Server_addObjectTypeNode(
-        server, UA_NODEID_NUMERIC(1, 5001), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
+        server, UA_NODEID_NUMERIC(1, 5000), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEEVENTTYPE),
         UA_NODEID_NUMERIC(0, UA_NS0ID_HASSUBTYPE),
         UA_QUALIFIEDNAME(0, "TransitionAutomaticEventType"), attr, NULL, NULL);
 
@@ -256,19 +256,29 @@ generateManualTransitionEventfinished(UA_Server *server) {
                        UA_StatusCode_name(retval));
 }
 
+struct ClientInfo
+{
+    const char *uri;
+    int id;    
+    UA_Client* client;
+};
+
 int main(int argc, char *argv[]) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
 
+    const size_t clientCnt=3;
+    struct ClientInfo clients[clientCnt];
+    memset(&clients, 0, sizeof(struct ClientInfo)*clientCnt);
+
+    clients[0].uri = "opc.tcp://localhost:4840";
+    clients[1].uri = "opc.tcp://localhost:4841";
+    clients[2].uri = "opc.tcp://localhost:4842";
+
     Statemachine_new(&sm);
-    Statemachine_addSubstatemachine(sm);
-    Statemachine_addSubstatemachine(sm);
-
-    int ids[2] ={0,1};
-
-    if(argc < 2) {
-        printf("Usage: statemachine <opc.tcp://server-url>\n");
-        return EXIT_FAILURE;
+    for(size_t i=0; i<clientCnt; i++)
+    {
+        clients[i].id=Statemachine_addSubstatemachine(sm);
     }
 
     UA_Server *server = UA_Server_new();
@@ -278,15 +288,14 @@ int main(int argc, char *argv[]) {
     addNewEventType(server);
     UA_Server_run_startup(server);
 
-    UA_Client* clients[2];
-    for(size_t i=0;i<2;i++)
+    for(size_t i=0;i<clientCnt;i++)
     {
         UA_Client *client = UA_Client_new();
         UA_ClientConfig_setDefault(UA_Client_getConfig(client));
-        clients[i] = client;
-        UA_Client_getConfig(client)->clientContext = &ids[i];
+        clients[i].client = client;
+        UA_Client_getConfig(client)->clientContext = &clients[i].id;
 
-        UA_StatusCode retval = UA_Client_connect(client, argv[1]);
+        UA_StatusCode retval = UA_Client_connect(client, clients[i].uri);
         if(retval != UA_STATUSCODE_GOOD) {
             UA_Client_delete(client);
             return EXIT_FAILURE;
@@ -340,34 +349,29 @@ int main(int argc, char *argv[]) {
 
         monId = result.monitoredItemId;
     }
-    
-    
-
-    
-
-
-    
-
+ 
     while(running)
     {
-        UA_Client_run_iterate(clients[0], 10);
-        UA_Client_run_iterate(clients[1], 10);
+        for(size_t i=0; i<clientCnt;i++)
+        {
+            UA_Client_run_iterate(clients[i].client, 0);
+        }
         UA_Server_run_iterate(server, false);
         Statemachine_process(sm);
         struct Message m = Statemachine_getOutputEvent(sm);
-        while(m.id!=OUT_REQUEST_EMPTY)
+        while(m.id!=EMPTY)
         {            
             switch(m.id)
             {
                 case OUT_REQUEST_AUTOMATIC:
-                    UA_Client_call_async(clients[m.subId],
+                    UA_Client_call_async(clients[m.subId].client,
                                          UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
                                          UA_NODEID_NUMERIC(1, 6000), 0, NULL, NULL
                                          , NULL, NULL);
                     break;
                 case OUT_REQUEST_MANUAL:
                     UA_Client_call_async(
-                        clients[m.subId], UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+                        clients[m.subId].client, UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
                         UA_NODEID_NUMERIC(1, 6001), 0, NULL, NULL, NULL, NULL);
                     break;
                 case OUT_TRANSITION_AUTOMATIC_FINISHED:
@@ -375,8 +379,7 @@ int main(int argc, char *argv[]) {
                     break;
                 case OUT_TRANSITION_MANUAL_FINISHED:
                     generateManualTransitionEventfinished(server);
-                case OUT_REQUEST_EMPTY:
-                    break;
+                case EMPTY:
                 case UNDEFINED:
                 case IN_REQUEST_MANUAL:
                 case IN_REQUEST_AUTOMATIC:
@@ -394,10 +397,6 @@ int main(int argc, char *argv[]) {
     //UA_Client_Subscriptions_deleteSingle(client, response.subscriptionId);
     //UA_Array_delete(filter.selectClauses, nSelectClauses, &UA_TYPES[UA_TYPES_SIMPLEATTRIBUTEOPERAND]);
 
-
-    UA_Client_disconnect(clients[0]);
-    UA_Client_disconnect(clients[1]);
-    UA_Client_delete(clients[0]);
-    UA_Client_delete(clients[1]);
+    
     return EXIT_SUCCESS;
 }
