@@ -649,7 +649,7 @@ typedef enum {
                                  variant's lifecycle. */
 } UA_VariantStorageType;
 
-typedef struct {
+typedef struct UA_Variant{
     const UA_DataType *type;      /* The data type description */
     UA_VariantStorageType storageType;
     size_t arrayLength;           /* The number of elements in the data array */
