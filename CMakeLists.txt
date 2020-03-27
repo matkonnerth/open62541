@@ -109,6 +109,7 @@ if(UA_ENABLE_WEBSOCKET_SERVER)
 
     set(ua_architecture_headers ${ua_architecture_headers}
                                 ${PROJECT_SOURCE_DIR}/include/open62541/network_ws.h)
+
 endif()
 
 if(${UA_ARCHITECTURE} STREQUAL "None")
@@ -461,8 +462,8 @@ if(UA_ENABLE_WEBSOCKET_SERVER)
     # The recommended way is to install libwebsockets via the OS package manager. If
     # that is not possible, manually compile libwebsockets and set the cmake variables
     # defined in /tools/cmake/Findlibwebsockets.cmake
-    find_package(libwebsockets REQUIRED)
-    list(APPEND open62541_LIBRARIES ${LIBWEBSOCKETS_LIBRARIES})
+    #find_package(libwebsockets REQUIRED)
+    #list(APPEND open62541_LIBRARIES ${LIBWEBSOCKETS_LIBRARIES})
 endif()
 
 if(MINGW)
@@ -494,7 +495,7 @@ if(NOT UA_FORCE_CPP AND (CMAKE_COMPILER_IS_GNUCC OR "x${CMAKE_C_COMPILER_ID}" ST
     check_add_cc_flag("-pipe")      # Avoid writing temporary files (for compiler speed)
     check_add_cc_flag("-Wall")      # Warnings
     check_add_cc_flag("-Wextra")    # More warnings
-    check_add_cc_flag("-Wpedantic") # Standard compliance
+    #check_add_cc_flag("-Wpedantic") # Standard compliance
     check_add_cc_flag("-Werror")    # All warnings are errors
 
     check_add_cc_flag("-Wno-static-in-inline") # Clang doesn't like the use of static inline methods inside static inline methods
@@ -1148,11 +1149,14 @@ else()
                       )
 
     target_include_directories(open62541-object PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    
+    message(${CONAN_INCLUDE_DIRS_LIBWEBSOCKETS})
 
     add_library(open62541-plugins OBJECT ${default_plugin_sources} ${ua_architecture_sources} ${exported_headers})
     add_dependencies(open62541-plugins open62541-generator-types open62541-generator-transport open62541-generator-namespace)
     target_include_directories(open62541-plugins PRIVATE ${PROJECT_SOURCE_DIR}/plugins)
     target_include_directories(open62541-plugins PRIVATE ${PROJECT_BINARY_DIR}/src_generated)
+    target_include_directories(open62541-plugins PRIVATE ${CONAN_INCLUDE_DIRS_LIBWEBSOCKETS})
     target_compile_definitions(open62541-plugins PRIVATE -DUA_DYNAMIC_LINKING_EXPORT)
     set_target_properties(open62541-plugins PROPERTIES FOLDER "open62541/lib")
 
@@ -1245,6 +1249,7 @@ target_compile_definitions(open62541 PUBLIC UA_ARCHITECTURE_${UA_ARCHITECTURE_UP
 
 # DLL requires linking to dependencies
 target_link_libraries(open62541 ${open62541_LIBRARIES})
+target_link_libraries(open62541 CONAN_PKG::libwebsockets)
 
 ##########################
 # Build Selected Targets #
