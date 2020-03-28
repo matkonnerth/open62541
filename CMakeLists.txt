@@ -1149,14 +1149,12 @@ else()
                       )
 
     target_include_directories(open62541-object PRIVATE ${PROJECT_SOURCE_DIR}/src)
-    
-    message(${CONAN_INCLUDE_DIRS_LIBWEBSOCKETS})
 
     add_library(open62541-plugins OBJECT ${default_plugin_sources} ${ua_architecture_sources} ${exported_headers})
     add_dependencies(open62541-plugins open62541-generator-types open62541-generator-transport open62541-generator-namespace)
     target_include_directories(open62541-plugins PRIVATE ${PROJECT_SOURCE_DIR}/plugins)
     target_include_directories(open62541-plugins PRIVATE ${PROJECT_BINARY_DIR}/src_generated)
-    target_include_directories(open62541-plugins PRIVATE ${CONAN_INCLUDE_DIRS_LIBWEBSOCKETS})
+    #target_include_directories(open62541-plugins PRIVATE ${CONAN_INCLUDE_DIRS_LIBWEBSOCKETS})
     target_compile_definitions(open62541-plugins PRIVATE -DUA_DYNAMIC_LINKING_EXPORT)
     set_target_properties(open62541-plugins PROPERTIES FOLDER "open62541/lib")
 
@@ -1249,7 +1247,6 @@ target_compile_definitions(open62541 PUBLIC UA_ARCHITECTURE_${UA_ARCHITECTURE_UP
 
 # DLL requires linking to dependencies
 target_link_libraries(open62541 ${open62541_LIBRARIES})
-target_link_libraries(open62541 CONAN_PKG::libwebsockets)
 
 ##########################
 # Build Selected Targets #
