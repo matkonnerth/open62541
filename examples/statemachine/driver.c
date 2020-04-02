@@ -50,25 +50,38 @@ handler_events(UA_Client *client, UA_UInt32 subId, void *subContext,
     //ugly
     if(UA_Variant_hasScalarType(&eventFields[0], &UA_TYPES[UA_TYPES_NODEID]))
     {
-        UA_NodeId automatic = UA_NODEID_NUMERIC(1, 5000);
-        UA_NodeId manual = UA_NODEID_NUMERIC(1, 5001);
-        if(UA_NodeId_equal(&automatic, (UA_NodeId *)eventFields[0].data)) {
+        UA_NodeId transitionEventTypeId = UA_NODEID_NUMERIC(0,2311);
+        UA_NodeId transIdSetupToManual = UA_NODEID_NUMERIC(12, 5019);
+        UA_NodeId transIdManualToSetup = UA_NODEID_NUMERIC(12, 5015);
+        if(UA_NodeId_equal(&transitionEventTypeId, (UA_NodeId *)eventFields[0].data))
+        {
+
+
+        
+        if(UA_NodeId_equal(&transIdManualToSetup, (UA_NodeId *)eventFields[2].data)) {
             struct Message m = {IN_TRANSITION_AUTOMATIC, *(int*)UA_Client_getContext(client)};
             Statemachine_setInputEvent(sm, m);
             UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
                         "EventType confirm automatic");
         }
-        if(UA_NodeId_equal(&manual, (UA_NodeId *)eventFields[0].data)) {
+        if(UA_NodeId_equal(&transIdSetupToManual, (UA_NodeId *)eventFields[2].data)) {
             struct Message m = {IN_TRANSITION_MANUAL,
                                 *(int *)UA_Client_getContext(client)};
             Statemachine_setInputEvent(sm, m);
             UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
                         "EventType confirm manual");
         }
+        }
+        else
+        {
+            UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND,
+                        "Transition error?");
+        }
+
     }
 }
 
-const size_t nSelectClauses = 2;
+const size_t nSelectClauses = 3;
 
 static UA_SimpleAttributeOperand *
 setupSelectClauses(void) {
@@ -102,6 +115,19 @@ setupSelectClauses(void) {
     }
     selectClauses[1].attributeId = UA_ATTRIBUTEID_VALUE;
     selectClauses[1].browsePath[0] = UA_QUALIFIEDNAME_ALLOC(0, "Message");
+
+    //transition id
+    selectClauses[2].typeDefinitionId = UA_NODEID_NUMERIC(0, UA_NS0ID_TRANSITIONEVENTTYPE);
+    selectClauses[2].browsePathSize = 2;
+    selectClauses[2].browsePath = (UA_QualifiedName*)
+        UA_Array_new(selectClauses[2].browsePathSize, &UA_TYPES[UA_TYPES_QUALIFIEDNAME]);
+    if(!selectClauses[2].browsePath) {
+        UA_SimpleAttributeOperand_delete(selectClauses);
+        return NULL;
+    }
+    selectClauses[2].attributeId = UA_ATTRIBUTEID_VALUE;
+    selectClauses[2].browsePath[0] = UA_QUALIFIEDNAME_ALLOC(0, "Transition");
+    selectClauses[2].browsePath[1] = UA_QUALIFIEDNAME_ALLOC(0, "Id");
 
     return selectClauses;
 }
@@ -267,13 +293,13 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
 
-    const size_t clientCnt=3;
+    const size_t clientCnt=1;
     struct ClientInfo clients[clientCnt];
     memset(&clients, 0, sizeof(struct ClientInfo)*clientCnt);
 
-    clients[0].uri = "opc.tcp://localhost:4840";
-    clients[1].uri = "opc.tcp://localhost:4841";
-    clients[2].uri = "opc.tcp://localhost:4842";
+    clients[0].uri = "opc.tcp://192.168.110.10:4840";
+    //clients[1].uri = "opc.tcp://localhost:4841";
+    //clients[2].uri = "opc.tcp://localhost:4842";
 
     Statemachine_new(&sm);
     for(size_t i=0; i<clientCnt; i++)
@@ -316,7 +342,7 @@ int main(int argc, char *argv[]) {
         /* Add a MonitoredItem */
         UA_MonitoredItemCreateRequest item;
         UA_MonitoredItemCreateRequest_init(&item);
-        item.itemToMonitor.nodeId = UA_NODEID_NUMERIC(0, 2253);  // Root->Objects->Server
+        item.itemToMonitor.nodeId = UA_NODEID_STRING(16, "IMM.OpMode");  // Root->Objects->Server
         item.itemToMonitor.attributeId = UA_ATTRIBUTEID_EVENTNOTIFIER;
         item.monitoringMode = UA_MONITORINGMODE_REPORTING;
 
@@ -365,14 +391,14 @@ int main(int argc, char *argv[]) {
             {
                 case OUT_REQUEST_AUTOMATIC:
                     UA_Client_call_async(clients[m.subId].client,
-                                         UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
-                                         UA_NODEID_NUMERIC(1, 6000), 0, NULL, NULL
+                                         UA_NODEID_STRING(16, "IMM.OpMode"),
+                                         UA_NODEID_STRING(16, "IMM.OpMode.SwitchToSetup"), 0, NULL, NULL
                                          , NULL, NULL);
                     break;
                 case OUT_REQUEST_MANUAL:
                     UA_Client_call_async(
-                        clients[m.subId].client, UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
-                        UA_NODEID_NUMERIC(1, 6001), 0, NULL, NULL, NULL, NULL);
+                        clients[m.subId].client, UA_NODEID_STRING(16, "IMM.OpMode"),
+                        UA_NODEID_STRING(16, "IMM.OpMode.SwitchToManual"), 0, NULL, NULL, NULL, NULL);
                     break;
                 case OUT_TRANSITION_AUTOMATIC_FINISHED:
                     generateAutomaticTransitionEventfinished(server);

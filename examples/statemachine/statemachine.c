@@ -71,6 +71,7 @@ void Statemachine_process(struct Statemachine *sm)
     struct Message in = MessageQueue_dequeue(sm->externalEvents);
     while(in.id!=EMPTY)
     {
+        printf("proces message subId: %d id: %d\n", in.subId, in.id);
         switch(sm->state)
         {
             case STATE_MANUAL:
