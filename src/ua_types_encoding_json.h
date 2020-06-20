@@ -34,9 +34,11 @@ UA_encodeJson(const void *src, const UA_DataType *type,
               UA_String *serverUris, size_t serverUriSize,
               UA_Boolean useReversible) UA_FUNC_ATTR_WARN_UNUSED_RESULT;
 
+/*
 UA_StatusCode
 UA_decodeJson(const UA_ByteString *src, void *dst,
               const UA_DataType *type) UA_FUNC_ATTR_WARN_UNUSED_RESULT;
+*/
 
 /* Interal Definitions
  *

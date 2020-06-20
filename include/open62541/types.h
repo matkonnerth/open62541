@@ -1121,6 +1121,10 @@ typedef struct UA_DataTypeArray {
 /**
  * .. include:: types_generated.rst */
 
+UA_StatusCode UA_EXPORT
+UA_decodeJson(const UA_ByteString *src, void *dst,
+              const UA_DataType *type) UA_FUNC_ATTR_WARN_UNUSED_RESULT;
+
 _UA_END_DECLS
 
 #endif /* UA_TYPES_H_ */
